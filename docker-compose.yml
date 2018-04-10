@@ -3,6 +3,8 @@ version: "2.1"
 services:
   hts:
     build: .
+    environment:
+      PORT: 3000
     ports:
       - "3000:3000"
     volumes:
