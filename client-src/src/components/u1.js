@@ -21,7 +21,8 @@ class U1 extends Component {
         ? "bdHeadTab"
         : "headTab"}>
         <table
-          cellPadding="1"
+          cellPadding="0"
+          cellSpacing="0"
           width="100%"
           border="0"
           style={{
@@ -80,7 +81,7 @@ class U1 extends Component {
                 overflow: "hidden",
                 fontWeight: "normal",
                 padding: "5px",
-                paddingTop: "10px",
+                paddingTop: "-5px",
                 textAlign: "left"
               }}>
                 {this.props.selectedTask === "Backdata Entry"
@@ -127,7 +128,7 @@ class U1 extends Component {
               }}>
                 {(this.props.selectedTask === "Backdata Entry"
                   ? (this.props.wf.responses && this.props.wf.responses.primary
-                    ? this.props.wf.responses.primary["Set Date"]
+                    ? this.props.wf.responses.primary["Testing Date"]
                     : "")
                   : this.props.today)}
               </td>

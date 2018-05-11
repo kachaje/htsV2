@@ -23,7 +23,7 @@
             "Last Negative",
             "Last Positive",
             "Last Inconclusive",
-            "Last Exposed infant"
+            "Last Exposed Infant"
         ],
         "className": "longSelectList",
         "autoNext": true
@@ -47,8 +47,7 @@
         "customComponent": "FamilyRefs",
         "properties": {
             "label": "HTS Family Referral Slips"
-        },
-        "optional": true
+        }
     },
     "Comments": {
         "fieldType": "textarea",
@@ -69,7 +68,7 @@
         "func": [
             "Result Given to Client",
             "match",
-            "Positive|Inconclusive|New Exposed Infant",
+            "New Positive|Inconclusive|New Exposed Infant",
             "Testing"
         ]
     },
@@ -82,7 +81,7 @@
             "Last HIV Test Result",
             "match",
             "Last\\sNegative|Never\\sTested",
-            "Pre-Test Counseling"
+            "HTS Visit"
         ]
     },
     "First Pass Test 1 Result": {
@@ -127,8 +126,7 @@
             "test": "Determine HIV 1/2 Result",
             "duration2": "10 Minutes",
             "test2": "Uni-Gold Result"
-        },
-        "optional": true
+        }
     },
     "Repeat Test 1 Negative?": {
         "visible": false,
@@ -187,8 +185,7 @@
             "test": "Determine HIV 1/2 Result",
             "duration2": "10 Minutes",
             "test2": "Uni-Gold Result"
-        },
-        "optional": true
+        }
     },
     "Last Positive?": {
         "visible": false,
@@ -196,7 +193,7 @@
             "Last HIV Test Result",
             "equal",
             "Last Positive",
-            "Pre-Test Counseling"
+            "HTS Visit"
         ]
     },
     "FP Test 1 & 2 Negative?": {
@@ -265,16 +262,47 @@
             "Last HIV Test Result",
             "notEqual",
             "Never Tested",
-            "Pre-Test Counseling"
+            "HTS Visit"
         ]
     },
-    "Time since last HIV Test": {
+    "Time Since Last Test": {
         "fieldType": "period",
         "hiddenButtons": [
-            "clear"
+            "clear", "Unknown"
         ],
         "readOnly": true,
-        "minDuration": "age"
+        "minDuration": "age",
+        "validationRule": "^\\d+[D|W|M|Y]$",
+        "validationMessage": "Number and time units \n (days, weeks, months, years) \n must be entered",
+        "title": "Missing Data",
+        "validationCases": {
+            "cases": [
+                {
+                    "pattern": "^[0-9]D$|^[1-2][0-9]D$|^30D$",
+                    "patternGroup": "\\d+D$",
+                    "title": "Invalid Entry",
+                    "message": "Number of days between 0 and 30 \n must be entered"
+                },
+                {
+                    "pattern": "^[1-9]W$|^[1][0-9]W$|^[2][0-6]W$",
+                    "patternGroup": "\\d+W$",
+                    "title": "Invalid Entry",
+                    "message": "Number of weeks between 1 and 26 \n must be entered"
+                },
+                {
+                    "pattern": "^[1-9]M$|^[1][0-9]M$|^[2][0-9]M$|^[3][0-6]M$",
+                    "patternGroup": "\\d+M$",
+                    "title": "Invalid Entry",
+                    "message": "Number of months between 1 and 36 \n must be entered"
+                },
+                {
+                    "pattern": "^[1-9]Y$|^[1-9][0-9]Y$|^[1][0][0-9]Y$|^110Y$",
+                    "patternGroup": "\\d+Y$",
+                    "title": "Invalid Entry",
+                    "message": "Number of years between 1 and 110 \n must be entered"
+                }
+            ]
+        }
     },
     "Gender is Female?": {
         "visible": false,
@@ -301,7 +329,7 @@
             "age",
             "lessThan",
             "120",
-            "Pre-Test Counseling",
+            "HTS Visit",
             "months"
         ]
     },
@@ -311,7 +339,7 @@
             "Client Risk Category",
             "equal",
             "High Risk Event in Last 3 months",
-            "Pre-Test Counseling"
+            "HTS Visit"
         ]
     },
     "Ongoing risky behaviour?": {
@@ -320,7 +348,7 @@
             "Client Risk Category",
             "equal",
             "On-going Risk",
-            "Pre-Test Counseling"
+            "HTS Visit"
         ]
     },
     "Age 12-23 months?": {
@@ -331,6 +359,15 @@
             "1",
             "2",
             "Patient"
+        ]
+    },
+    "Pregnant female?": {
+        "visible": false,
+        "func": [
+            "Sex/Pregnancy",
+            "equal",
+            "Female Pregnant",
+            "HTS Visit"
         ]
     },
     "Child?": {
@@ -350,7 +387,9 @@
             "Partner Negative",
             "Partner Positive"
         ],
-        "className": "longSelectList"
+        "className": "longSelectList",
+        "condition": "!{{dual}}",
+        "action": "updatePartnerStatus('hiv status', props, state)"
     },
     "Number of male condoms given": {
         "fieldType": "number",

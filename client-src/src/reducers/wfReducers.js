@@ -319,7 +319,7 @@ const reverseNode = (newState, group) => {
         if (node.label && newState.responses[group] && newState.responses[group][node.label])
             delete newState.responses[group][node.label];
 
-        while (newState[group].history.length > 3 && ["option", "process", "decision"].indexOf(newState[group].history[newState[group].history.length - 1].type) >= 0) {
+        while (newState[group].history.length > 3 && ["option", "process", "decision", "alert"].indexOf(newState[group].history[newState[group].history.length - 1].type) >= 0) {
 
             node = newState[group]
                 .history
@@ -424,6 +424,15 @@ export default function (state = {
             entry[action.payload.field] = action.payload.result;
 
             newState.responses[action.payload.group] = Object.assign({}, newState.responses[action.payload.group], entry);
+
+            return newState;
+
+        case "CLEAR_FIELD":
+
+            newState = Object.assign({}, state);
+
+            if (Object.keys(newState.responses).indexOf(action.payload.group) >= 0 && Object.keys(newState.responses[action.payload.group]).indexOf(action.payload.field) >= 0)
+                delete newState.responses[action.payload.group][action.payload.field];
 
             return newState;
 

@@ -144,9 +144,13 @@ class Transcribe extends Component {
 
                     visitDetails["Last HIV Test"] = visit[this.props.app.selectedVisit][entryCode][encounter][concept];
 
+                  } else if (concept === "Comments") {
+
+                    visitDetails["Comments:Comments"] = visit[this.props.app.selectedVisit][entryCode][encounter][concept];
+
                   } else if (concept === "HTS Family Referral Slips") {
 
-                    visitDetails["Number of Items Given:HTS Family Ref Slips"] = visit[this.props.app.selectedVisit][entryCode][encounter][concept];
+                    visitDetails["Number of Items Given:HTS Family Referral Slips"] = visit[this.props.app.selectedVisit][entryCode][encounter][concept];
 
                   } else if (concept === "Number of female condoms given") {
 
@@ -501,7 +505,7 @@ class Transcribe extends Component {
       },
       52: {
         category: "Number of Items Given",
-        field: "HTS Family Ref Slips",
+        field: "HTS Family Referral Slips",
         group: 14
       },
       53: {
@@ -515,6 +519,11 @@ class Transcribe extends Component {
         field: "Condoms",
         subField: "Female",
         group: 14
+      },
+      55: {
+        category: "Comments",
+        field: "Comments",
+        group: 15
       }
     };
 
@@ -1953,13 +1962,13 @@ class Transcribe extends Component {
                                     ? fields[i]
                                     : (i === 0 && this.state.visitDetails && this.state.visitDetails.id
                                       ? this.state.visitDetails.id
-                                      : (this.state.visitDetails && fieldNames[i] && fieldNames[i].category && this.state.visitDetails[(fieldNames[i].category
+                                      : (this.state.visitDetails && fieldNames[i] && Object.keys(fieldNames[i]).indexOf("category") >= 0 && Object.keys(this.state.visitDetails).indexOf((fieldNames[i].category
                                         ? fieldNames[i].category
                                         : "") + (fieldNames[i].field
                                           ? ":" + fieldNames[i].field
                                           : "") + (fieldNames[i].subField
                                             ? ":" + fieldNames[i].subField
-                                            : "")]
+                                            : "")) >= 0
                                         ? this.state.visitDetails[(fieldNames[i].category
                                           ? fieldNames[i].category
                                           : "") + (fieldNames[i].field

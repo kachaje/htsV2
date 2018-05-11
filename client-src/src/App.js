@@ -20,11 +20,15 @@ import {
   fetchUsers,
   blockUser,
   activateUser,
-  loadData
+  loadData,
+  flagRegisterFilled,
+  updatePartnerRecord,
+  getVersion,
+  usernameValid
 } from "./actions/appAction";
-import { fetchData, clearCache } from "./actions/fetchDataAction";
+import { fetchData, clearCache, setData } from "./actions/fetchDataAction";
 import { ClipLoader } from "react-spinners";
-import { loadWorkflow, goForward, clearWorkflow, goBackward, handleInputChange } from "./actions/wfActions";
+import { loadWorkflow, goForward, clearWorkflow, goBackward, handleInputChange, clearField } from "./actions/wfActions";
 import { fetchLastBDRow, saveBDRow, fetchEditRow, saveEditRow, resetErrorMessage } from "./actions/bdAction";
 import {
   searchByIdentifier,
@@ -71,6 +75,7 @@ import { updateClient } from './validations/updateClient';
 import { switches } from "./validations/switches";
 import { validated } from './validations/validated';
 import UsersViewer from './components/usersViewer';
+// eslint-disable-next-line
 import algorithm from './lib/dhaAlgorithm.js';
 import Login from './components/login';
 import tests from './config/tests';
@@ -169,6 +174,12 @@ class App extends Component {
         this.setCookie('accessToken', '', 1);
 
       });
+
+  }
+
+  componentWillMount() {
+
+    this.props.getVersion();
 
   }
 
@@ -456,6 +467,10 @@ class App extends Component {
 
   switchProgram(programName) {
 
+    this
+      .props
+      .fetchRegisterStats();
+
     const program = this
       .props
       .app
@@ -573,33 +588,127 @@ class App extends Component {
 
   async switchPage(target) {
 
-    if (!this.props.app.formActive && this.props.app.patientActivated && this.props.app.currentId && this.props.app.patientData && this.props.app.patientData[this.props.app.currentId] && this.props.app.selectedVisit && this.props.app.module && this.props.app.patientData[this.props.app.currentId][this.props.app.module] && this.props.app.patientData[this.props.app.currentId][this.props.app.module].visits && this.props.app.patientData[this.props.app.currentId][this.props.app.module].visits.filter((e) => {
-      return Object
-        .keys(e)
-        .length > 0 && Object.keys(e)[0] === this.props.app.selectedVisit
-    })) {
+    if (this.props.app.dual) {
 
-      let rows = this
-        .props
-        .app
-        .patientData[this.props.app.currentId][this.props.app.module]
-        .visits
-        .filter((e) => {
+      if (this.props.app.partnerId) {
+
+        if (!this.props.app.formActive && this.props.app.patientActivated && this.props.app.partnerId && this.props.app.patientData && this.props.app.patientData[this.props.app.partnerId] && this.props.app.selectedVisit && this.props.app.module && this.props.app.patientData[this.props.app.partnerId][this.props.app.module] && this.props.app.patientData[this.props.app.partnerId][this.props.app.module].visits && this.props.app.patientData[this.props.app.partnerId][this.props.app.module].visits.filter((e) => {
           return Object
             .keys(e)
             .length > 0 && Object.keys(e)[0] === this.props.app.selectedVisit
-        });
+        })) {
 
-      if (rows.length > 0) {
+          let rows = this
+            .props
+            .app
+            .patientData[this.props.app.partnerId][this.props.app.module]
+            .visits
+            .filter((e) => {
+              return Object
+                .keys(e)
+                .length > 0 && Object.keys(e)[0] === this.props.app.selectedVisit
+            });
 
-        for (let entryCode of Object.keys(rows[0][this.props.app.selectedVisit])) {
+          if (rows.length > 0) {
 
-          if (Object.keys(rows[0][this.props.app.selectedVisit][entryCode]["HTS Visit"]).indexOf("registerNumber") <= 0) {
+            for (let entryCode of Object.keys(rows[0][this.props.app.selectedVisit])) {
 
-            return this
-              .props
-              .showInfoMsg("Transcribe in Register", "The current visit does not have a register number associated. Please enter in re" +
-                "gister first to proceed!");
+              if (Object.keys(rows[0][this.props.app.selectedVisit][entryCode]["HTS Visit"]).indexOf("registerNumber") <= 0) {
+
+                return this
+                  .props
+                  .showInfoMsg("Transcribe in Register", "The current partner visit does not have a register number associated. Please enter in re" +
+                    "gister first to proceed!");
+
+              }
+
+            }
+
+          }
+
+        }
+
+      } else {
+
+        return this.props.showInfoMsg("Incomplete Data", "The current visit is missing partner data. Please capture partner data first before closing session.")
+
+      }
+
+      if (this.props.app.clientId) {
+
+        if (!this.props.app.formActive && this.props.app.patientActivated && this.props.app.clientId && this.props.app.patientData && this.props.app.patientData[this.props.app.clientId] && this.props.app.selectedVisit && this.props.app.module && this.props.app.patientData[this.props.app.clientId][this.props.app.module] && this.props.app.patientData[this.props.app.clientId][this.props.app.module].visits && this.props.app.patientData[this.props.app.clientId][this.props.app.module].visits.filter((e) => {
+          return Object
+            .keys(e)
+            .length > 0 && Object.keys(e)[0] === this.props.app.selectedVisit
+        })) {
+
+          let rows = this
+            .props
+            .app
+            .patientData[this.props.app.clientId][this.props.app.module]
+            .visits
+            .filter((e) => {
+              return Object
+                .keys(e)
+                .length > 0 && Object.keys(e)[0] === this.props.app.selectedVisit
+            });
+
+          if (rows.length > 0) {
+
+            for (let entryCode of Object.keys(rows[0][this.props.app.selectedVisit])) {
+
+              if (Object.keys(rows[0][this.props.app.selectedVisit][entryCode]["HTS Visit"]).indexOf("registerNumber") <= 0) {
+
+                return this
+                  .props
+                  .showInfoMsg("Transcribe in Register", "The current partner visit does not have a register number associated. Please enter in re" +
+                    "gister first to proceed!");
+
+              }
+
+            }
+
+          }
+
+        }
+
+      } else {
+
+        return this.props.showInfoMsg("Incomplete Data", "The current visit is missing partner data. Please capture partner data first before closing session.")
+
+      }
+
+    } else {
+
+      if (!this.props.app.formActive && this.props.app.patientActivated && this.props.app.currentId && this.props.app.patientData && this.props.app.patientData[this.props.app.currentId] && this.props.app.selectedVisit && this.props.app.module && this.props.app.patientData[this.props.app.currentId][this.props.app.module] && this.props.app.patientData[this.props.app.currentId][this.props.app.module].visits && this.props.app.patientData[this.props.app.currentId][this.props.app.module].visits.filter((e) => {
+        return Object
+          .keys(e)
+          .length > 0 && Object.keys(e)[0] === this.props.app.selectedVisit
+      })) {
+
+        let rows = this
+          .props
+          .app
+          .patientData[this.props.app.currentId][this.props.app.module]
+          .visits
+          .filter((e) => {
+            return Object
+              .keys(e)
+              .length > 0 && Object.keys(e)[0] === this.props.app.selectedVisit
+          });
+
+        if (rows.length > 0) {
+
+          for (let entryCode of Object.keys(rows[0][this.props.app.selectedVisit])) {
+
+            if (Object.keys(rows[0][this.props.app.selectedVisit][entryCode]["HTS Visit"]).indexOf("registerNumber") <= 0) {
+
+              return this
+                .props
+                .showInfoMsg("Transcribe in Register", "The current visit does not have a register number associated. Please enter in re" +
+                  "gister first to proceed!");
+
+            }
 
           }
 
@@ -653,7 +762,9 @@ class App extends Component {
         scanID: null,
         primary: {},
         secondary: {},
-        patientActivated: false
+        patientActivated: false,
+        firstSummary: null,
+        secondSummary: null
       };
 
       payload.currentSection = "home";
@@ -665,6 +776,18 @@ class App extends Component {
 
       this.checkBarcode();
 
+      if (this.props.app.currentId && this.props.app.flagged) {
+
+        delete this.props.app.flagged[this.props.app.currentId];
+
+      }
+
+      if (this.props.app.partnerId && this.props.app.flagged) {
+
+        delete this.props.app.flagged[this.props.app.partnerId];
+
+      }
+
     }
 
     await this
@@ -674,6 +797,7 @@ class App extends Component {
   }
 
   queryOptions(value) {
+
     if (this.props.app.configs[this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label
       ? this.props.wf[this.state.currentWorkflow].currentNode.label
       : ""] && Object.keys(this.props.app.configs[this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label
@@ -706,6 +830,25 @@ class App extends Component {
   }
 
   async navBack() {
+
+    if (this.state.currentWorkflow && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label === "Immediate Parallel Repeat Test 1 & 2 Results") {
+
+      this.props.clearField("Immediate Repeat Test 1 Result", this.state.currentWorkflow);
+
+      this.props.clearField("Immediate Repeat Test 2 Result", this.state.currentWorkflow);
+
+      this.props.clearField("Immediate Parallel Repeat Test 1 & 2 Results", this.state.currentWorkflow);
+
+    }
+
+    if (this.state.currentWorkflow && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && (this.props.wf[this.state.currentWorkflow].currentNode.label === "HTS Referral Slips Recipients" || this.props.wf[this.state.currentWorkflow].currentNode.label === "Comments")) {
+
+      this.props.clearField("HTS Referral Slips Recipients", this.state.currentWorkflow);
+
+      this.props.clearField("HTS Family Referral Slips", this.state.currentWorkflow);
+
+    }
+
     if (this.props.app.fieldPos <= 0) {
       return;
     }
@@ -721,14 +864,39 @@ class App extends Component {
     await this
       .props
       .updateApp({
-        fieldPos: this.props.app.fieldPos - 1
+        fieldPos: this.props.app.fieldPos - 1,
+        reversing: true
       });
 
     await this
       .props
       .goBackward(this.state.currentWorkflow);
 
+    await this
+      .props
+      .updateApp({
+        reversing: false
+      });
+
     await this.queryOptions("");
+
+    if (this.props.app.selectedTask === "Backdata Entry") {
+
+      await this.props.updateApp({ isDirty: false });
+
+      if (this.props.wf && this.props.wf.responses && this.props.wf.responses[this.state.currentWorkflow]) {
+
+        Object.keys(this.props.wf.responses[this.state.currentWorkflow]).forEach(async (field) => {
+
+          if (["Register Number (from cover)", "Testing Date"].indexOf(field) < 0)
+            this.props.clearField(field, this.state.currentWorkflow);
+
+        })
+
+      }
+
+    }
+
   }
 
   async navNext(value) {
@@ -736,7 +904,7 @@ class App extends Component {
     if (this.props.app.currentSection === "home" && !this.props.app.formActive) {
       this.switchPage("patient");
     } else if (this.props.app.formActive) {
-      const valid = validated(this.props, this.state);
+      const valid = await validated(this.props, this.state);
 
       if (this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label === "Service Delivery Point" && this.props.wf.responses && this.props.wf.responses[this.state.currentWorkflow] && this.props.wf.responses[this.state.currentWorkflow]["Service Delivery Point"]) {
         this
@@ -1031,7 +1199,9 @@ class App extends Component {
         primary: {},
         secondary: {},
         currentSection: "patient",
-        isDirty: false
+        isDirty: false,
+        firstSummary: null,
+        secondSummary: null
       };
 
       await this
@@ -1067,7 +1237,9 @@ class App extends Component {
         scanID: null,
         primary: {},
         secondary: {},
-        isDirty: false
+        isDirty: false,
+        firstSummary: null,
+        secondSummary: null
       };
 
       if (["registration", "admin"].indexOf(this.props.app.currentSection) >= 0) {
@@ -1101,11 +1273,11 @@ class App extends Component {
     if (!this.props.app.formActive && this.props.app.dual && this.props.app.patientActivated && ((this.props.app.clientId && this.props.app.patientData && this.props.app.patientData[this.props.app.clientId] && this.props.app.selectedVisit && this.props.app.module && this.props.app.patientData[this.props.app.clientId][this.props.app.module] && this.props.app.patientData[this.props.app.clientId][this.props.app.module].visits && this.props.app.patientData[this.props.app.clientId][this.props.app.module].visits.filter((e) => {
       return Object.keys(e)[0] === this.props.app.selectedVisit && Object
         .keys(e[this.props.app.selectedVisit])
-        .length < 1
+        .length > 0
     }).length > 0) || (this.props.app.partnerId && this.props.app.patientData && this.props.app.patientData[this.props.app.partnerId] && this.props.app.selectedVisit && this.props.app.module && this.props.app.patientData[this.props.app.partnerId][this.props.app.module] && this.props.app.patientData[this.props.app.partnerId][this.props.app.module].visits && this.props.app.patientData[this.props.app.partnerId][this.props.app.module].visits.filter((e) => {
       return Object.keys(e)[0] === this.props.app.selectedVisit && Object
         .keys(e[this.props.app.selectedVisit])
-        .length < 1
+        .length > 0
     }).length > 0))) {
 
       this
@@ -1196,7 +1368,9 @@ class App extends Component {
               scanID: null,
               primary: {},
               secondary: {},
-              isDirty: false
+              isDirty: false,
+              firstSummary: null,
+              secondSummary: null
             };
 
             if (nextPage)
@@ -1219,7 +1393,7 @@ class App extends Component {
     } else if (!this.props.app.formActive && this.props.app.patientActivated && this.props.app.currentId && this.props.app.patientData && this.props.app.patientData[this.props.app.currentId] && this.props.app.selectedVisit && this.props.app.module && this.props.app.patientData[this.props.app.currentId][this.props.app.module] && this.props.app.patientData[this.props.app.currentId][this.props.app.module].visits && this.props.app.patientData[this.props.app.currentId][this.props.app.module].visits.filter((e) => {
       return Object.keys(e)[0] === this.props.app.selectedVisit && Object
         .keys(e[this.props.app.selectedVisit])
-        .length < 1
+        .length > 0
     }).length > 0) {
 
       this
@@ -1296,7 +1470,9 @@ class App extends Component {
               scanID: null,
               primary: {},
               secondary: {},
-              isDirty: false
+              isDirty: false,
+              firstSummary: null,
+              secondSummary: null
             };
 
             if (nextPage)
@@ -1355,7 +1531,9 @@ class App extends Component {
         scanID: null,
         primary: {},
         secondary: {},
-        isDirty: false
+        isDirty: false,
+        firstSummary: null,
+        secondSummary: null
       };
 
       if (nextPage)
@@ -1405,13 +1583,27 @@ class App extends Component {
             .showErrorMsg('Error', e)
         });
 
+      await this.props.flagRegisterFilled(this.props.app.currentId, this.props.app.module, this.props.app.selectedVisit, this.props.app.entryCode);
+
       if (this.props.app.dual) {
 
-        this.cancelForm();
+        if (this.props.app.flagged && this.props.app.clientId && this.props.app.partnerId && this.props.app.flagged[this.props.app.clientId] && this.props.app.flagged[this.props.app.partnerId]) {
 
-        this
-          .props
-          .fetchVisits(this.props.app.currentId);
+          this.switchPage("home");
+
+        } else {
+
+          this.cancelForm();
+
+          this
+            .props
+            .fetchVisits(this.props.app.currentId);
+
+        }
+
+      } else if (this.props.app.patientActivated) {
+
+        this.switchPage("home");
 
       } else {
 
@@ -1445,6 +1637,20 @@ class App extends Component {
 
     } else if (this.props.app.configs.action) {
 
+      if (this.props.app.sectionHeader === "HTS Visit") {
+
+        if (this.props.wf && this.props.wf.responses && this.state.currentWorkflow && this.props.wf.responses[this.state.currentWorkflow] && Object.keys(this.props.wf.responses[this.state.currentWorkflow]).indexOf("Client gives consent to be tested?") && this.props.wf.responses[this.state.currentWorkflow]["Client gives consent to be tested?"] === "No") {
+
+          return false;
+
+        }
+
+        await this.props.updateApp({ processing: true });
+
+      }
+
+      const selectedTask = this.props.app.selectedTask;
+
       await this
         .props
         .clearDataStructs();
@@ -1473,6 +1679,12 @@ class App extends Component {
             .showErrorMsg('Error', this.props.app.errorMessage);
         });
 
+      if (selectedTask === "Add User") {
+
+        await this.props.fetchUsers();
+
+      }
+
       await this
         .props
         .clearWorkflow(this.state.currentWorkflow)
@@ -1485,6 +1697,27 @@ class App extends Component {
             .fetchVisits(this.props.app.currentId);
 
         });
+
+      if (this.props.app.sectionHeader === "HTS Visit") {
+
+        const entryCode = this.props
+          .app
+          .patientData[this.props.app.currentId][this.props.app.module]
+          .visits
+          .filter((e) => {
+            return Object.keys(e)[0] === this.props.app.selectedVisit
+          })
+          .map((e) => {
+            return Object.keys(e[Object.keys(e)[0]])
+          })[0];
+
+        this.transcribe(entryCode);
+
+      } else {
+
+        this.props.updateApp({ processing: false });
+
+      }
 
     }
 
@@ -1611,7 +1844,7 @@ class App extends Component {
     await this
       .props
       .updateApp({
-        selectedTask: "Find Client By Name",
+        selectedTask: "Find or Register Client",
         formActive: true,
         currentSection: "registration",
         configs: Object.assign({}, (this.props.app.data && this.props.app.module && this.props.app.data[this.props.app.module] && this.props.app.data[this.props.app.module]["PatientRegistration"] && this.props.app.data[this.props.app.module]["PatientRegistration"].configs
@@ -1620,7 +1853,7 @@ class App extends Component {
         summaryIgnores: Object.assign([], (this.props.app.data && this.props.app.module && this.props.app.data[this.props.app.module] && this.props.app.data[this.props.app.module]["PatientRegistration"] && this.props.app.data[this.props.app.module]["PatientRegistration"].ignores
           ? this.props.app.data[this.props.app.module]["PatientRegistration"].ignores
           : {})),
-        sectionHeader: "Find Client By Name"
+        sectionHeader: "Find or Register Client"
       });
 
     await this
@@ -1656,7 +1889,7 @@ class App extends Component {
           "summaryIgnores"
         ].forEach(field => {
 
-          if (this.props.app.secondary[field])
+          if (this.props.app.secondary[field] || (typeof this.props.app.secondary[field] === "boolean" && Object.keys(this.props.app.secondary).indexOf(field)))
             payload[field] = this.props.app.secondary[field]
 
         })
@@ -1676,7 +1909,7 @@ class App extends Component {
           "summaryIgnores"
         ].forEach(field => {
 
-          if (this.props.app.primary[field])
+          if (this.props.app.primary[field] || (typeof this.props.app.primary[field] === "boolean" && Object.keys(this.props.app.primary).indexOf(field)))
             payload[field] = this.props.app.primary[field]
 
         })
@@ -1692,7 +1925,7 @@ class App extends Component {
 
       payload.currentPatient = this.props.app.patientData[currentId]
 
-      if (payload.sectionHeader === "Find Client By Name") {
+      if (payload.sectionHeader === "Find or Register Client") {
 
         payload.configs = Object.assign({}, (this.props.app.data && this.props.app.module && this.props.app.data[this.props.app.module] && this.props.app.data[this.props.app.module]["PatientRegistration"] && this.props.app.data[this.props.app.module]["PatientRegistration"].configs
           ? this.props.app.data[this.props.app.module]["PatientRegistration"].configs
@@ -1741,7 +1974,7 @@ class App extends Component {
         sectionHeader: "Backdata Entry",
         fieldPos: 0,
         configs: {
-          "Set Date": {
+          "Testing Date": {
             fieldType: "date",
             validationRule: "^\\d+\\s[A-Za-z]+\\s\\d{4}$",
             validationMessage: "Enter valid date (day, month, year)",
@@ -1770,7 +2003,9 @@ class App extends Component {
               "del"
             ],
             ajaxURL: '/programs/fetch_active_registers?q=',
-            lockList: true
+            lockList: true,
+            validationMessage: "Select register number from list",
+            title: "Missing Data"
           },
           "Enter Data": {
             customComponent: "BackdataEntry",
@@ -1926,7 +2161,8 @@ class App extends Component {
           currentId,
           selectedTask: nextTask,
           formActive: true,
-          fieldPos: 0
+          fieldPos: 0,
+          [this.state.currentWorkflow.match(/second/i) ? "secondSummary" : "firstSummary"]: false
         });
 
       await this.navigateToRoute(nextTask, "/", group);
@@ -1963,7 +2199,8 @@ class App extends Component {
           formActive: false,
           selectedTask: null,
           fieldPos: 0,
-          sectionHeader: null
+          sectionHeader: null,
+          [this.state.currentWorkflow.match(/second/i) ? "secondSummary" : "firstSummary"]: true
         });
 
     } else {
@@ -1990,7 +2227,8 @@ class App extends Component {
             formActive: true,
             selectedTask: this.props.app.order[0],
             fieldPos: 0,
-            sectionHeader: this.props.app.order[0]
+            sectionHeader: this.props.app.order[0],
+            [this.state.currentWorkflow.match(/second/i) ? "secondSummary" : "firstSummary"]: false
           });
 
         await this.navigateToRoute(this.props.app.order[0], "/", group);
@@ -2011,7 +2249,7 @@ class App extends Component {
 
   async handleClearClicks() {
 
-    if (this.props.dde.ddeSearchActive) {
+    if (this.props.dde.ddeSearchActive && this.$('btnClear') && this.$('btnClear').innerHTML === "New Client") {
 
       await this
         .props
@@ -2031,11 +2269,36 @@ class App extends Component {
 
     } else {
 
+      if (this.state.currentWorkflow && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label === "Immediate Parallel Repeat Test 1 & 2 Results") {
+
+        this.props.clearField("Immediate Repeat Test 1 Result", this.state.currentWorkflow);
+
+        this.props.clearField("Immediate Repeat Test 2 Result", this.state.currentWorkflow);
+
+        this.props.clearField("Immediate Parallel Repeat Test 1 & 2 Results", this.state.currentWorkflow);
+
+      }
+
+      if (this.state.currentWorkflow && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label === "First Pass Parallel Test 1 & 2 Results") {
+
+        this.props.clearField("First Pass Test 1 Result", this.state.currentWorkflow);
+
+        this.props.clearField("First Pass Test 2 Result", this.state.currentWorkflow);
+
+        this.props.clearField("First Pass Parallel Test 1 & 2 Results", this.state.currentWorkflow);
+
+      }
+
       this
         .props
         .handleInputChange(this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label
           ? this.props.wf[this.state.currentWorkflow].currentNode.label
           : "", "", this.state.currentWorkflow);
+
+      this
+        .queryOptions(this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label
+          ? this.props.wf[this.state.currentWorkflow].currentNode.label
+          : "");
 
     }
 
@@ -2152,20 +2415,6 @@ class App extends Component {
 
     await this
       .props
-      .submitForm("/programs/save_demographics", Object.assign({}, activePatient, {
-        primaryId: this.props.app.scanID || activePatient._id || activePatient.npid || activePatient.otherId,
-        date: this.props.app.selectedVisit && new Date(this.props.app.selectedVisit)
-          ? new Date(this.props.app.selectedVisit).getTime()
-          : new Date().getTime(),
-        program: this.props.app.module,
-        group: this.state.currentWorkflow,
-        location: this.props.app.activeLocation,
-        user: this.props.app.activeUser,
-        ignore: true
-      }));
-
-    await this
-      .props
       .selectPatient(activePatient);
 
     await this
@@ -2210,7 +2459,12 @@ class App extends Component {
         hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
         hiddenElement.target = '_blank';
         hiddenElement.download = filename + '.csv';
+
+        document.body.appendChild(hiddenElement);
+
         hiddenElement.click();
+
+        document.body.removeChild(hiddenElement);
 
       } catch (e) {
 
@@ -2245,6 +2499,8 @@ class App extends Component {
         return Object.keys(e[Object.keys(e)[0]])
       })[0];
 
+    // this.props.setData(entryCodes);
+
     return entryCodes;
 
   }
@@ -2261,7 +2517,7 @@ class App extends Component {
 
     await this
       .props
-      .updateApp({ entryCode });
+      .updateApp({ entryCode: (Array.isArray(entryCode) ? entryCode[0] : entryCode) });
 
     const configs = {
       "Register Number (from cover)": {
@@ -2279,13 +2535,12 @@ class App extends Component {
         lockList: true
       },
       "Select Entry Code": {
-        options: this.loadEntryCodes()
+        options: this.loadEntryCodes(),
+        lockList: true
       },
       "Entry Code Not Set?": {
         visible: false,
-        condition: (this.props.app.entryCode
-          ? "No"
-          : "Yes")
+        condition: "!String('{{entryCode}}').match(/^ec/i)"
       },
       "Display": {
         customComponent: "Transcribe",
@@ -2313,16 +2568,19 @@ class App extends Component {
         sectionHeader: "Transcribe in Register",
         fieldPos: 0,
         configs,
-        summaryIgnores
+        summaryIgnores,
+        processing: false
       });
 
     await this
       .props
       .loadData(this.props.app.module, this.props.app.selectedTask, configs, summaryIgnores);
 
-    this
+    await this
       .props
       .loadWorkflow(this.state.currentWorkflow, this.props.app.data[this.props.app.module]["Transcribe"].data);
+
+    this.queryOptions("");
 
   }
 
@@ -2497,6 +2755,46 @@ class App extends Component {
 
   }
 
+  checkIfUsernameValid(token) {
+
+    return new Promise(function (resolve, reject) {
+      // Do the usual XHR stuff
+      var req = new XMLHttpRequest();
+      req.open('GET', '/username_valid/' + token);
+
+      req.onload = function () {
+        // This is called even on 404 etc
+        // so check the status
+        if (req.status === 200) {
+          // Resolve the promise with the response text
+          if (JSON.parse(req.response).valid === true) {
+
+            resolve(true);
+
+          } else {
+
+            reject(false);
+
+          }
+        }
+        else {
+          // Otherwise reject with the status text
+          // which will hopefully be a meaningful error
+          reject(Error(req.statusText));
+        }
+      };
+
+      // Handle network errors
+      req.onerror = function () {
+        reject(Error("Network Error"));
+      };
+
+      // Make the request
+      req.send();
+    });
+
+  }
+
   async addUser() {
 
     await this.setState({ currentWorkflow: "primary" });
@@ -2521,8 +2819,8 @@ class App extends Component {
           "Username": {
             fieldType: "dha",
             textCase: "upper",
-            validator: algorithm.decode,
-            validatorMessage: "Invalid ID format entered"
+            validator: this.checkIfUsernameValid, // algorithm.decode,
+            validationMessage: "Invalid ID format entered"
           },
           "Password": {
             fieldType: "password",
@@ -2530,11 +2828,20 @@ class App extends Component {
           },
           "Confirm Password": {
             fieldType: "password",
-            textCase: "lower"
+            textCase: "lower",
+            onUnLoad: () => {
+              if (this.props.wf && this.props.wf.responses && this.state.currentWorkflow && this.props.wf.responses[this.state.currentWorkflow] && Object.keys(this.props.wf.responses[this.state.currentWorkflow]).indexOf("Password") >= 0 && Object.keys(this.props.wf.responses[this.state.currentWorkflow]).indexOf("Confirm Password") >= 0 && this.props.wf.responses[this.state.currentWorkflow]["Confirm Password"].trim().length > 0 && this.props.wf.responses[this.state.currentWorkflow]["Password"] !== this.props.wf.responses[this.state.currentWorkflow]["Confirm Password"]) {
+
+                this.props.showErrorMsg("Invalid Data", "Password mismatch");
+
+                this.navBack();
+
+              }
+            }
           },
           "Role": {
             options: [
-              "Admin", "Counselor", "HTS Coordinator", "Registration Clerk"
+              "Admin", "Counselor", "HTS Coordinator"
             ],
             className: "longSelectList"
           },
@@ -2793,9 +3100,7 @@ class App extends Component {
           },
           "Ask End Month?": {
             visible: false,
-            condition: (this.props.app.activeReport !== "daily register"
-              ? "Yes"
-              : "No")
+            condition: "'{{activeReport}}' !== 'daily register'"
           },
           "End Month": {
             options: [
@@ -2831,23 +3136,16 @@ class App extends Component {
           },
           "Ask Location?": {
             visible: false,
-            condition: (this.props.app.activeReport === "daily register" || this.props.app.activeReport === "monthly report"
-              ? "Yes"
-              : "No")
+            condition: "'{{activeReport}}' === 'daily register' || '{{activeReport}}' === 'monthly report'"
           },
           "Location": {
-            className: "longSelectList",
-            options: (locations && Object.keys(locations).length > 0
-              ? [...new Set(Array.prototype.concat.apply([], Object.keys(locations).map((e) => {
-                return locations[e]
-              })))].sort()
-              : null)
+            ajaxURL: "/programs/fetch_locations",
+            lockList: true,
+            className: "longSelectList"
           },
           "Ask Test?": {
             visible: false,
-            condition: (this.props.app.activeReport === "daily register"
-              ? "Yes"
-              : "No")
+            condition: "'{{activeReport}}' === 'daily register'"
           },
           "Test": {
             options: (tests
@@ -2938,6 +3236,19 @@ class App extends Component {
 
   render() {
 
+    const nextLabel = (this.props.app.currentSection === "home" || this.props.app.currentSection === "registration"
+      ? this.props.app.formActive
+        ? (this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.type
+          ? this.props.wf[this.state.currentWorkflow].currentNode.type
+          : "") === "exit" || (this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label === "Enter Data")
+          ? "Finish"
+          : "Next" : "Realtime Data Entry" : this.props.app.formActive
+        ? (this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.type
+          ? this.props.wf[this.state.currentWorkflow].currentNode.type
+          : "") === "exit"
+          ? "Finish"
+          : "Next" : "Finish");
+
     const buttons = [
       {
         id: "btnRegister",
@@ -2990,22 +3301,11 @@ class App extends Component {
         id: "btnNext",
         buttonClass: (this.props.app.data && this.props.app.module && this.props.app.data[this.props.app.module] && this.props.app.data[this.props.app.module]["PatientRegistration"] && this.props.app.data[this.props.app.module]["PatientRegistration"].data
           ? "green nav-buttons"
-          : "gray nav-buttons"),
+          : (this.props.app.sectionHeader === "Find or Register Client" && Object.keys(this.props.app.currentPatient).length > 0 ? "green nav-buttons" : "gray nav-buttons")),
         onMouseDown: () => {
           this.handleNextButtonClicks();
         },
-        label: this.props.app.currentSection === "home" || this.props.app.currentSection === "registration"
-          ? this.props.app.formActive
-            ? (this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.type
-              ? this.props.wf[this.state.currentWorkflow].currentNode.type
-              : "") === "exit" || (this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label === "Enter Data")
-              ? "Finish"
-              : "Next" : "Realtime Data Entry" : this.props.app.formActive
-            ? (this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.type
-              ? this.props.wf[this.state.currentWorkflow].currentNode.type
-              : "") === "exit"
-              ? "Finish"
-              : "Next" : "Finish",
+        label: nextLabel,
         extraStyles: {
           cssFloat: "right",
           marginTop: "15px",
@@ -3014,7 +3314,7 @@ class App extends Component {
         disabled: (this.props.app.currentSection === "reports" || (["HTS"].indexOf(this.props.app.module) < 0) || this.props.app.userManagementActive === true) && this.props.app.selectedTask !== "Report Filter"
           ? true
           : false,
-        inactive: (this.props.app.module === "" && !this.props.app.formActive) || (this.props.app.silentProcessing && !this.props.app.patientActivated)
+        inactive: (this.props.app.module === "" && !this.props.app.formActive) || (this.props.app.silentProcessing && !this.props.app.patientActivated) || (nextLabel === "Realtime Data Entry" && this.props.app.activeRegisters <= 0)
           ? true
           : false
       }, {
@@ -3031,7 +3331,7 @@ class App extends Component {
         disabled: this.props.app.currentSection !== "home" || this.props.app.formActive || this.props.app.module !== "HTS" || this.props.app.userManagementActive === true
           ? true
           : false,
-        inactive: this.props.app.module === "" && !this.props.app.formActive
+        inactive: (this.props.app.module === "" && !this.props.app.formActive) || (nextLabel === "Realtime Data Entry" && this.props.app.activeRegisters <= 0)
           ? true
           : false
       }, {
@@ -3105,7 +3405,7 @@ class App extends Component {
           this.handleClearClicks();
         },
         label: (!this.props.app.formActive && this.props.app.dual && (this.props.app.dual && ((this.props.app.primary.summary || this.props.app.primary.forceSummary) || (this.props.app.secondary.summary || this.props.app.secondary.forceSummary)))
-          ? "Continue"
+          ? "HTS Visit"
           : "Clear"),
         extraStyles: {
           cssFloat: "right",
@@ -3160,14 +3460,26 @@ class App extends Component {
         id: "btnTranscribe",
         buttonClass: "blue nav-buttons",
         onMouseDown: () => {
-          this.transcribe();
+
+          const entryCode = this.props
+            .app
+            .patientData[this.props.app.currentId][this.props.app.module]
+            .visits
+            .filter((e) => {
+              return Object.keys(e)[0] === this.props.app.selectedVisit
+            })
+            .map((e) => {
+              return Object.keys(e[Object.keys(e)[0]])
+            })[0];
+
+          this.transcribe(entryCode);
         },
         label: "Transcribe",
         extraStyles: {
           cssFloat: "right",
           marginTop: "15px"
         },
-        disabled: !this.props.app.patientActivated || this.props.app.formActive // || this.props.app.dual
+        disabled: true // !this.props.app.patientActivated || this.props.app.formActive
           ? true
           : false,
         inactive: this.props.app.module === "" && !this.props.app.formActive
@@ -3282,7 +3594,7 @@ class App extends Component {
           setReportingPeriod={this
             .setReportingPeriod
             .bind(this)}
-          app={this.props.app} />{" "} {!this.props.app.activeUser || !this.props.app.location
+          app={this.props.app} />{" "} {(!this.props.app.activeUser || !this.props.app.location)
             ? <Login
               handleDirectInputChange={this.props.handleInputChange}
               app={this.props.app}
@@ -3605,7 +3917,7 @@ class App extends Component {
                         ? this.props.wf[this.state.currentWorkflow].currentNode.options
                         : null}
                       order={this.props.app.order}
-                      fieldType={this.props.app.configs[this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label
+                      fieldType={this.props.app && this.props.app.configs && this.props.app.configs[this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label
                         ? this.props.wf[this.state.currentWorkflow].currentNode.label
                         : ""] && this.props.app.configs[this.props.wf && this.props.wf[this.state.currentWorkflow] && this.props.wf[this.state.currentWorkflow].currentNode && this.props.wf[this.state.currentWorkflow].currentNode.label
                           ? this.props.wf[this.state.currentWorkflow].currentNode.label
@@ -3736,10 +4048,11 @@ class App extends Component {
                         .bind(this)}
                       printLabel={this
                         .printLabel
-                        .bind(this)} />
+                        .bind(this)}
+                      clearField={this.props.clearField.bind(this)} />
                   </div>
                 )}
-        <U13 buttons={buttons} />
+        <U13 buttons={buttons} version={this.props.app.version} />
       </div>
     );
   }
@@ -4108,6 +4421,24 @@ const mapDispatchToProps = dispatch => {
     },
     resetErrorMessage: async () => {
       return await dispatch(resetErrorMessage());
+    },
+    setData: async (data) => {
+      return await dispatch(setData(data));
+    },
+    flagRegisterFilled: async (clientId, module, visitDate, entryCode) => {
+      return await dispatch(flagRegisterFilled(clientId, module, visitDate, entryCode));
+    },
+    updatePartnerRecord: async (clientId, concept, visitDate, valuecurrentUser, url) => {
+      return await dispatch(updatePartnerRecord(clientId, concept, visitDate, valuecurrentUser, url));
+    },
+    clearField: async (field, group) => {
+      return await dispatch(clearField(field, group));
+    },
+    getVersion: async () => {
+      return await dispatch(getVersion());
+    },
+    usernameValid: async (username) => {
+      return await dispatch(usernameValid(username));
     }
   };
 };

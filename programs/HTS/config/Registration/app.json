@@ -4,7 +4,15 @@
         "validationRule": "^\\d+[D|W|M|Y]$",
         "validationMessage": "Number and time units \n (days, weeks, months, years) \n must be entered",
         "title": "Missing Data",
-        "hiddenButtons": ["clear", "/", ".", "-", "abc", "qwe", "Unknown"],
+        "hiddenButtons": [
+            "clear",
+            "/",
+            ".",
+            "-",
+            "abc",
+            "qwe",
+            "Unknown"
+        ],
         "validationCases": {
             "cases": [
                 {
@@ -36,11 +44,17 @@
     },
     "First Name": {
         "ajaxURL": "/dde/list_first_names?name=",
-        "fieldType": "text"
+        "fieldType": "text",
+        "hiddenButtons": [
+            "num", ":", ".", "/"
+        ]
     },
     "Last Name": {
         "ajaxURL": "/dde/list_last_names?name=",
-        "fieldType": "text"
+        "fieldType": "text",
+        "hiddenButtons": [
+            "num", ":", ".", "/"
+        ]
     },
     "Gender": {
         "options": [
@@ -85,33 +99,68 @@
         "visible": false
     },
     "Region of Origin": {
-        "ajaxURL": "/dde/search_by_region?name="
+        "ajaxURL": "/dde/search_by_region?name=",
+        "lockList": true,
+        "validationMessage": "Region of Origin \n must be entered",
+        "title": "Missing Data"
     },
     "Current Region": {
         "ajaxURL": "/dde/search_by_region?name=",
-        "autoNext": true
+        "autoNext": true,
+        "lockList": true,
+        "validationMessage": "Current Region \n must be entered",
+        "title": "Missing Data"
     },
     "Year of Birth": {
         "fieldType": "number",
         "validationRule": "^\\d{4}$|Unknown",
-        "min": "thisYear - 120",
+        "min": "thisYear - 110",
         "max": "thisYear",
-        "validationMessage": "Birth year \n must be (current year - 110) to (current year)",
-        "hiddenButtons": ["clear", "/", ".", "-", "abc", "qwe"]
+        "validationMessage": "Birth year \n must between {{thisYear - 110}} and {{thisYear}}",
+        "hiddenButtons": [
+            "clear",
+            "/",
+            ".",
+            "-",
+            "abc",
+            "qwe"
+        ]
     },
     "Year of Birth Unknown?": {
         "visible": false,
-        "func": ["Year of Birth", "match", "Unknown"]
+        "func": [
+            "Year of Birth",
+            "match",
+            "Unknown"
+        ]
     },
     "Month of Birth": {
-        "options": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December", "Unknown"],
+        "options": [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+            "Unknown"
+        ],
         "className": "longSelectList",
         "title": "Missing Data",
         "message": "Month of birth \n must be selected"
     },
     "Month of Birth Unknown?": {
         "visible": false,
-        "func": ["Month of Birth", "match", "Unknown"]
+        "func": [
+            "Month of Birth",
+            "match",
+            "Unknown"
+        ]
     },
     "Date of Birth": {
         "fieldType": "days",
@@ -124,7 +173,11 @@
     },
     "Date of Birth Unknown?": {
         "visible": false,
-        "func": ["Date of Birth", "match", "Unknown"]
+        "func": [
+            "Date of Birth",
+            "match",
+            "Unknown"
+        ]
     },
     "Ask T/A of Origin?": {
         "answer": "No",
@@ -138,7 +191,14 @@
         "fieldType": "number",
         "validationRule": "^0[1|2|8|9]\\d{8}$|Unknown|Not Available|^N\\/A$",
         "validationMessage": "Cellphone number \n must start with 01, 02,08 or 09 \n followed by 8 digits",
-        "hiddenButtons": ["clear", "/", ".", "-", "abc", "qwe"]
+        "hiddenButtons": [
+            "clear",
+            "/",
+            ".",
+            "-",
+            "abc",
+            "qwe"
+        ]
     },
     "District of Origin": {
         "ajaxURL": "/dde/search_by_district?region=REGION&district=",
@@ -146,7 +206,10 @@
             "Region of Origin": "REGION",
             "autoNext": true
         },
-        "fieldType": "text"
+        "fieldType": "text",
+        "lockList": true,
+        "validationMessage": "District of Origin \n must be entered",
+        "title": "Missing Data"
     },
     "Current District": {
         "ajaxURL": "/dde/search_by_district?region=REGION&district=",
@@ -154,7 +217,10 @@
             "Current Region": "REGION",
             "autoNext": true
         },
-        "fieldType": "text"
+        "fieldType": "text",
+        "lockList": true,
+        "validationMessage": "Current District \n must be entered",
+        "title": "Missing Data"
     },
     "Current T/A": {
         "ajaxURL": "/dde/search_by_t_a?district=DISTRICT&ta=",
@@ -162,7 +228,10 @@
             "Current District": "DISTRICT",
             "autoNext": true
         },
-        "fieldType": "text"
+        "fieldType": "text",
+        "lockList": true,
+        "validationMessage": "Current T/A \n must be entered",
+        "title": "Missing Data"
     },
     "Current Village": {
         "ajaxURL": "/dde/search_by_village?ta=TA&village=",
@@ -170,7 +239,10 @@
             "Current T/A": "TA",
             "autoNext": true
         },
-        "fieldType": "text"
+        "fieldType": "text",
+        "lockList": true,
+        "validationMessage": "Current Village \n must be entered",
+        "title": "Missing Data"
     },
     "Patient Match Found?": {
         "customComponent": "DDESearch",
@@ -184,7 +256,13 @@
     },
     "Child?": {
         "visible": false,
-        "func": ["age", "inRange", "0", "14", "Other"]
+        "func": [
+            "age",
+            "inRange",
+            "0",
+            "14",
+            "Other"
+        ]
     },
     "Client consents to be contacted": {
         "title": "Missing Data",
@@ -193,6 +271,9 @@
     "Search by name?": {
         "title": "Missing Data",
         "message": "Search by name \n Select Yes or No"
+    },
+    "Partner present": {
+        "condition": "!{{dual}}"
     },
     "action": "/programs/save_demographics"
 }

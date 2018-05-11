@@ -35,10 +35,13 @@ module.exports = function (app) {
   const User = app.models.User;
   const Role = app.models.Role;
   const Location = app.models.Location;
-  const htsIndicatorsMapping = require(__dirname + "/../../client-src/src/config/htsIndicatorsMapping.json");
+  const site = require(__dirname + "/../../client-src/src/config/site.json");
+  const es = require(__dirname + "/../../configs/elasticsearch.json");
+  const htsIndicatorsMapping = require(__dirname + "/../../configs/htsIndicatorsMapping.json");
   const uuid = require("uuid");
   const ReadableSearch = require("elasticsearch-streams").ReadableSearch;
-  const esClient = new require("elasticsearch").Client({ host: es.host + ":" + es.port });
+  const esClient = new require("elasticsearch").Client();
+  const pepfarSynthesis = require(__dirname + "/../../lib/pepfarSynthesis.js");
 
   const monthNames = [
     "January",
@@ -131,11 +134,47 @@ module.exports = function (app) {
 
   }
 
+  const runCmd = (cmd) => {
+
+    return new Promise((resolve, reject) => {
+
+      const exec = require('child_process').exec;
+
+      try {
+
+        exec(cmd, function (error, stdout, stderr) {
+
+          if (stderr) {
+
+            reject(stderr);
+
+          } else {
+
+            debug(stdout);
+
+            resolve(stdout);
+
+          }
+
+        })
+
+      } catch (e) {
+
+        currentError = e;
+
+        reject(e);
+
+      }
+
+    })
+
+  }
+
   const validActiveToken = (token) => {
 
     return new Promise((resolve, reject) => {
 
-      debug(token);
+      debug("'" + token + "'");
 
       User
         .accessToken
@@ -145,10 +184,12 @@ module.exports = function (app) {
 
           if (result) {
 
-            const ttl = result.ttl;
+            const ttl = (!isNaN(result.ttl) ? parseInt(result.ttl, 10) : 0) * 1000;
             const ttd = (new Date(result.created)).getTime() + ttl;
 
             const now = (new Date()).getTime();
+
+            debug("%s - %s = %s", ttd, now, (ttd - now));
 
             if (ttd > now) {
 
@@ -296,7 +337,7 @@ module.exports = function (app) {
           ? location.locationId
           : 1;
 
-        let user = await User.findOne({
+        let user = await Users.findOne({
           where: {
             username
           }
@@ -432,7 +473,7 @@ module.exports = function (app) {
           ? location.locationId
           : 1;
 
-        let user = await User.findOne({
+        let user = await Users.findOne({
           where: {
             username
           }
@@ -510,6 +551,7 @@ module.exports = function (app) {
   let ddeData = {};
 
   const searchById = (req, raw) => {
+
     return new Promise(resolve => {
       new client()
         .get(req.protocol + "://" + req.hostname + ":" + (process.env.PORT
@@ -522,10 +564,22 @@ module.exports = function (app) {
             resolve();
           });
     });
+
   };
 
   const addNewPatient = (req, raw) => {
+
+    debug("***********************");
+
+    debug(JSON.stringify(raw));
+
+    debug("***********************");
+
     return new Promise(resolve => {
+
+      if (Object.keys(raw).indexOf("birthdate") < 0 && Object.keys(raw).indexOf("Date of Birth") < 0)
+        return resolve();
+
       const args = {
         data: {
           family_name: raw.names
@@ -601,7 +655,9 @@ module.exports = function (app) {
 
           resolve();
         });
+
     });
+
   };
 
   const parseAge = (number) => {
@@ -963,7 +1019,15 @@ module.exports = function (app) {
         await addNewPatient(req, raw);
 
         if (ddeData && !ddeData.data) {
+
+          debug("%%%%%%%%%%%%%%%%%%%%");
+
+          debug(ddeData);
+
+          debug("%%%%%%%%%%%%%%%%%%%%");
+
           raw.npid = ddeData.npid;
+
         } else if (ddeData && ddeData.data && Array.isArray(ddeData.data)) {
           ddeData
             .data
@@ -1084,7 +1148,7 @@ module.exports = function (app) {
     const currentUser = "admin";
     const currentLocationName = "Unknown";
 
-    const user = await User.findOne({
+    const user = await Users.findOne({
       where: {
         username: currentUser
       }
@@ -1331,6 +1395,12 @@ module.exports = function (app) {
       primaryId = clinicId;
     }
 
+    debug("^^^^^^^^^^^^^^^^^^^^^");
+
+    debug(json);
+
+    debug("^^^^^^^^^^^^^^^^^^^^^");
+
     let buffer = Object.assign({}, json);
 
     // fetchAge(buffer);
@@ -1444,6 +1514,8 @@ module.exports = function (app) {
 
     let json = Object.assign({}, req.body);
 
+    debug(JSON.stringify(json));
+
     let identifier = await PatientIdentifier.findOne({
       where: {
         identifier: json.primaryId
@@ -1553,7 +1625,7 @@ module.exports = function (app) {
       ? program.programId
       : null;
 
-    const user = await User.findOne({
+    const user = await Users.findOne({
       where: {
         username: currentUser
       }
@@ -1562,6 +1634,8 @@ module.exports = function (app) {
     const userId = user
       ? user.id
       : 1;
+
+    const providerId = user ? user.personId : 1;
 
     let location = await Location.findOne({
       where: {
@@ -1629,7 +1703,7 @@ module.exports = function (app) {
     encounter = await Encounter.create({
       encounterType,
       patientId,
-      providerId: userId,
+      providerId,
       locationId,
       encounterDatetime: new Date(today),
       creator: userId,
@@ -1912,7 +1986,7 @@ module.exports = function (app) {
 
     let currentUser = "admin";
 
-    const user = await User.findOne({
+    const user = await Users.findOne({
       where: {
         username: currentUser
       }
@@ -2039,7 +2113,7 @@ module.exports = function (app) {
       ? json["Current Location"]
       : "Unknown";
 
-    const user = await User.findOne({
+    const user = await Users.findOne({
       where: {
         username: currentUser
       }
@@ -2131,7 +2205,7 @@ module.exports = function (app) {
 
     if (!provider) {
 
-      return res.status(400).json({ error: true, message: "HTS Provider ID \n not registered at this site" });
+      return res.status(400).json({ error: true, message: "HTS Provider ID \n does not exist" });
 
     }
 
@@ -2261,7 +2335,10 @@ module.exports = function (app) {
         "Partner HIV Status",
         "Referral for Re-Testing",
         "Appointment Date Given",
-        "Number of Items Given:HTS Family Referral Slips"
+        "Number of Items Given:HTS Family Referral Slips",
+        "Number of Items Given:Condoms:Male",
+        "Number of Items Given:Condoms:Female",
+        "Comments:Comments"
       ]
     };
 
@@ -2412,6 +2489,24 @@ module.exports = function (app) {
 
         }
 
+        if (conceptname === "Number of Items Given:Condoms:Male") {
+
+          conceptname = "Number of male condoms given";
+
+        }
+
+        if (conceptname === "Number of Items Given:Condoms:Female") {
+
+          conceptname = "Number of female condoms given";
+
+        }
+
+        if (conceptname === "Comments:Comments") {
+
+          conceptname = "Comments";
+
+        }
+
         let concept = await ConceptName.findOne({
           where: {
             name: conceptname
@@ -2555,79 +2650,14 @@ module.exports = function (app) {
         "Other (VCT, etc.)": "VCT/Other"
       };
 
-      const accessType = htsAccessTypeMappings[json['HTS Access Type']];
+      const accessType = json['HTS Access Type'];
 
-      let partnerHIVStatus = (json["Partner HIV Status"] !== "Partner Positive"
-        ? "Any"
-        : "Partner Positive");
+      let partnerHIVStatus = json["Partner HIV Status"];
 
-      if (htsIndicatorsMapping[locationType] && htsIndicatorsMapping[locationType][serviceDeliveryPoint] && htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType] && htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus]) {
+      const result = pepfarSynthesis.ps.classifyLocation(htsIndicatorsMapping, locationType, serviceDeliveryPoint, accessType, partnerHIVStatus, age);
 
-        for (let group of Object.keys(clientAges)) {
-
-          if (age >= clientAges[group][0] && age <= clientAges[group][1]) {
-
-            if (htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]) {
-
-              htsSetting = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Setting'];
-
-              htsModality = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Modality'];
-
-              break;
-
-            }
-
-          }
-
-        }
-
-        if (String(htsSetting).trim().length <= 0) {
-
-          partnerHIVStatus = "Any other";
-
-          for (let group of Object.keys(clientAges)) {
-
-            if (age >= clientAges[group][0] && age <= clientAges[group][1]) {
-
-              if (htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]) {
-
-                htsSetting = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Setting'];
-
-                htsModality = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Modality'];
-
-                break;
-
-              }
-
-            }
-
-          }
-
-        }
-
-      } else if (htsIndicatorsMapping[locationType] && htsIndicatorsMapping[locationType][serviceDeliveryPoint] && htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType] && htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType]["Any other"]) {
-
-        partnerHIVStatus = "Any other";
-
-        for (let group of Object.keys(clientAges)) {
-
-          if (age >= clientAges[group][0] && age <= clientAges[group][1]) {
-
-            if (htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]) {
-
-              htsSetting = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Setting'];
-
-              htsModality = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Modality'];
-
-              break;
-
-            }
-
-          }
-
-        }
-
-      }
+      htsSetting = result.htsSetting;
+      htsModality = result.htsModality;
 
       debug("$$$$$$$$$$$$$$$$$$$$$$$");
 
@@ -2801,6 +2831,10 @@ module.exports = function (app) {
 
               json["Last HIV Test"] = row.observationValue;
 
+            } else if (row.observation === "Comments") {
+
+              json["Comments:Comments"] = row.observationValue;
+
             } else if (row.observation === "HTS Family Referral Slips") {
 
               json["Number of Items Given:HTS Family Referral Slips"] = row.observationValue;
@@ -2844,6 +2878,12 @@ module.exports = function (app) {
   router.get("/programs/fetch_visits/:id", async function (req, res, next) {
 
     res.set("Content-Type", "application/json");
+
+    if (!req.params.id) {
+
+      return res.end();
+
+    }
 
     if (req.params.id === null)
       return res.status(200).json({});
@@ -3081,7 +3121,7 @@ module.exports = function (app) {
         }
       });
 
-      let user = await User.findOne({
+      let user = await Users.findOne({
         where: {
           userId
         }
@@ -3192,79 +3232,14 @@ module.exports = function (app) {
         "Other (VCT, etc.)": "VCT/Other"
       };
 
-      const accessType = htsAccessTypeMappings[json.client[entryCode]["HTS Visit"]['HTS Access Type']];
+      const accessType = json.client[entryCode]["HTS Visit"]['HTS Access Type'];
 
-      let partnerHIVStatus = (json.client[entryCode]["HTS Visit"]["Partner HIV Status"] !== "Partner Positive"
-        ? "Any"
-        : "Partner Positive");
+      let partnerHIVStatus = json.client[entryCode]["HTS Visit"]["Partner HIV Status"];
 
-      if (htsIndicatorsMapping[locationType] && htsIndicatorsMapping[locationType][serviceDeliveryPoint] && htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType] && htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus]) {
+      const result = pepfarSynthesis.ps.classifyLocation(htsIndicatorsMapping, locationType, serviceDeliveryPoint, accessType, partnerHIVStatus, age);
 
-        for (let group of Object.keys(clientAges)) {
-
-          if (age >= clientAges[group][0] && age <= clientAges[group][1]) {
-
-            if (htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]) {
-
-              htsSetting = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Setting'];
-
-              htsModality = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Modality'];
-
-              break;
-
-            }
-
-          }
-
-        }
-
-        if (String(htsSetting).trim().length <= 0) {
-
-          partnerHIVStatus = "Any other";
-
-          for (let group of Object.keys(clientAges)) {
-
-            if (age >= clientAges[group][0] && age <= clientAges[group][1]) {
-
-              if (htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]) {
-
-                htsSetting = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Setting'];
-
-                htsModality = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Modality'];
-
-                break;
-
-              }
-
-            }
-
-          }
-
-        }
-
-      } else if (htsIndicatorsMapping[locationType] && htsIndicatorsMapping[locationType][serviceDeliveryPoint] && htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType] && htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType]["Any other"]) {
-
-        partnerHIVStatus = "Any other";
-
-        for (let group of Object.keys(clientAges)) {
-
-          if (age >= clientAges[group][0] && age <= clientAges[group][1]) {
-
-            if (htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]) {
-
-              htsSetting = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Setting'];
-
-              htsModality = htsIndicatorsMapping[locationType][serviceDeliveryPoint][accessType][partnerHIVStatus][group]['HTS Modality'];
-
-              break;
-
-            }
-
-          }
-
-        }
-
-      }
+      htsSetting = result.htsSetting;
+      htsModality = result.htsModality;
 
       debug("$$$$$$$$$$$$$$$$$$$$$$$");
 
@@ -3332,7 +3307,7 @@ module.exports = function (app) {
 
     let currentUser = "admin";
 
-    const user = await User.findOne({
+    const user = await Users.findOne({
       where: {
         username: currentUser
       }
@@ -3456,7 +3431,7 @@ module.exports = function (app) {
       ? req.body['Add Register']
       : {});
 
-    let user = await User.findOne({
+    let user = await Users.findOne({
       where: {
         username: json.username
       }
@@ -3564,7 +3539,7 @@ module.exports = function (app) {
 
     if (existingRegister && Object.keys(existingRegister).length > 0) {
 
-      let user = await User.findOne({
+      let user = await Users.findOne({
         where: {
           username: req.body.user
         }
@@ -3789,6 +3764,10 @@ module.exports = function (app) {
 
                         json["Last HIV Test"] = row.observationValue;
 
+                      } else if (row.observation === "Comments") {
+
+                        json["Comments:Comments"] = row.observationValue;
+
                       } else if (row.observation === "HTS Family Referral Slips") {
 
                         json["Number of Items Given:HTS Family Referral Slips"] = row.observationValue;
@@ -3866,7 +3845,7 @@ module.exports = function (app) {
     if (!activeUser)
       return res.status(400).json({ error: true, message: "Missing username" });
 
-    let user = await User.findOne({
+    let user = await Users.findOne({
       where: {
         username: activeUser
       }
@@ -4522,12 +4501,18 @@ module.exports = function (app) {
 
           debug(err);
 
-          res
-            .status(400)
-            .json({ message: "Location not found!" });
 
-        } else {
+          if (false)
 
+          if (false)
+
+          if (false)
+
+          if (false)
+
+          if (false)
+
+          if (false)
           debug(result);
 
           res.cookie('location', decodeURIComponent(result.name));
@@ -4542,7 +4527,7 @@ module.exports = function (app) {
 
     }).catch((e) => {
 
-      debug(e);
+      console.log(e);
 
       res
         .status(401)
@@ -4557,6 +4542,390 @@ module.exports = function (app) {
     res
       .status(200)
       .json([]);
+
+  })
+
+  router.post('/programs/update_partner_record', async function (req, res, next) {
+
+    debug(req.body);
+
+    const patient = await PatientIdentifier.findOne({
+      where: {
+        identifier: req.body.clientId
+      }
+    });
+
+    const personId = (patient ? patient.patientId : null);
+
+    const concept = await ConceptName.findOne({
+      where: {
+        name: req.body.concept
+      }
+    });
+
+    const conceptId = (concept ? concept.conceptId : null);
+
+    const user = await Users.findOne({
+      where: {
+        username: req.body.currentUser
+      }
+    });
+
+    const userId = user
+      ? user.id
+      : 1;
+
+    const obs = await Obs.findOne({
+      where: {
+        conceptId,
+        obsDatetime: {
+          gt: (new Date((new Date(req.body.visitDate)).setDate((new Date(req.body.visitDate)).getDate() - 1))),
+          lt: (new Date((new Date(req.body.visitDate)).setDate((new Date(req.body.visitDate)).getDate() + 1)))
+        },
+        personId,
+        voided: 0
+      }
+    })
+
+    debug(obs);
+
+    if (obs) {
+
+      const value = String(req.body.value).trim();
+
+      const valueCoded = await ConceptName.findOne({
+        where: {
+          name: req.body.value
+        }
+      });
+
+      const valueCodedId = (valueCoded ? valueCoded.conceptId : null);
+
+      const valueCodedNameId = (valueCoded ? valueCoded.conceptNameId : null);
+
+      const result = await Obs.updateAll({
+        obsId: obs.obsId
+      }, {
+          voided: 1,
+          voidedBy: userId,
+          dateVoided: new Date(),
+          voidReason: "Voided by user"
+        });
+
+
+      const newObs = await Obs.create({
+        personId,
+        conceptId,
+        encounterId: obs.encounterId,
+        obsDatetime: new Date(req.body.visitDate),
+        locationId: obs.locationId,
+        valueCoded: valueCodedId,
+        valueCodedNameId,
+        valueNumeric: !valueCodedId && String(value)
+          .trim()
+          .match(/^\d+$/)
+          ? value
+          : null,
+        valueText: !valueCodedId && !String(value)
+          .trim()
+          .match(/^\d+$/)
+          ? value
+          : null,
+        creator: userId,
+        dateCreated: new Date(),
+        uuid: uuid.v4()
+      });
+
+      const encounter = await Encounter.findOne({
+        where: {
+          encounterId: obs.encounterId
+        }
+      });
+
+      const encounterType = (encounter ? (await EncounterType.findOne({
+        where: {
+          encounterTypeId: encounter.encounterType
+        }
+      })) : null);
+
+      const entryCodeConcept = await ConceptName.findOne({
+        where: {
+          name: "HTS Entry Code"
+        }
+      });
+
+      const entryCodeConceptId = (entryCodeConcept ? entryCodeConcept.conceptId : null);
+
+      const clinicIdentifier = (entryCodeConceptId ? (await Obs.findOne({
+        where: {
+          conceptId: entryCodeConceptId,
+          personId,
+          obsDatetime: {
+            gt: (new Date((new Date(obs.obsDatetime)).setDate((new Date(obs.obsDatetime)).getDate() - 1))),
+            lt: (new Date((new Date(obs.obsDatetime)).setDate((new Date(obs.obsDatetime)).getDate() + 1)))
+          }
+        }
+      })) : null);
+
+      const clinicId = (clinicIdentifier ? clinicIdentifier.valueText : null);
+
+      debug(clinicId);
+
+      const registerConcept = await ConceptName.findOne({
+        where: {
+          name: "Register Number (from cover)"
+        }
+      });
+
+      const registerConceptId = (registerConcept ? registerConcept.conceptId : null);
+
+      const registerObs = (registerConceptId ? (await Obs.findOne({
+        where: {
+          conceptId: registerConceptId,
+          personId,
+          obsDatetime: {
+            gt: (new Date((new Date(obs.obsDatetime)).setDate((new Date(obs.obsDatetime)).getDate() - 1))),
+            lt: (new Date((new Date(obs.obsDatetime)).setDate((new Date(obs.obsDatetime)).getDate() + 1)))
+          }
+        }
+      })) : null);
+
+      const registerNumber = (registerObs ? registerObs.valueText : null);
+
+      debug(registerNumber);
+
+      new client().get(es.protocol + "://" + es.host + ":" + es.port + "/" + es.index + "/visit/_search", {
+        data: {
+          query: {
+            bool: {
+              must: [
+                {
+                  term: {
+                    obsId: {
+                      value: obs.obsId
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        headers: {
+          "Content-Type": "application/json"
+        }
+      },
+        async function (result) {
+
+          debug(JSON.stringify(result));
+
+          let locationType = "";
+
+          let serviceDeliveryPoint = "";
+
+          if (registerNumber !== null) {
+
+            const register = await HtsRegister.findOne({
+              where: {
+                registerId: registerNumber
+              }
+            });
+
+            debug(register);
+
+            if (register) {
+
+              const locType = await HtsRegisterLocationType.findOne({
+                where: {
+                  locationTypeId: register.locationTypeId
+                }
+              });
+
+              debug(locType);
+
+              if (locType)
+                locationType = locType.name;
+
+              const serviceDeliveryPt = await HtsRegisterServiceDeliveryPoint.findOne({
+                where: {
+                  serviceDeliveryPointId: register.serviceDeliveryPointId
+                }
+              });
+
+              debug(serviceDeliveryPt);
+
+              if (serviceDeliveryPt)
+                serviceDeliveryPoint = serviceDeliveryPt.name;
+
+            }
+
+          }
+
+          if (result && result.hits && result.hits.total && result.hits.total > 0) {
+
+            new client().delete(es.protocol + "://" + es.host + ":" + es.port + "/" + es.index + "/visit/" + result.hits.hits[0]._id, function (result) {
+
+              debug(result);
+
+            });
+
+          }
+
+          const providerId = await Users.findOne({
+            where: {
+              personId: encounter.providerId
+            }
+          });
+
+          const provider = (providerId ? providerId.username : null);
+
+          debug(provider);
+
+          const locationName = await Location.findOne({
+            where: {
+              locationId: obs.locationId
+            }
+          });
+
+          const location = (locationName ? locationName.name : null);
+
+          const person = await Person.findOne({
+            where: {
+              personId
+            }
+          });
+
+          debug(person);
+
+          const age = (person ? ((new Date(person.birthdate)) / (365.0 * 24.0 * 60.0 * 60.0 * 1000.0)) : null);
+
+          const patientProgram = await PatientProgram.findOne({
+            where: {
+              patientProgramId: encounter.patientProgramId
+            }
+          });
+
+          const program = (patientProgram ? (await Program.findOne({
+            where: {
+              programId: patientProgram.programId
+            }
+          })) : null);
+
+          const programName = (program ? program.name : "");
+
+          let row = {
+            visitDate: new Date(req.body.visitDate),
+            encounterType: (encounterType ? encounterType.name : null),
+            identifier: clinicId,
+            observation: req.body.concept,
+            observationValue: req.body.value,
+            program: programName.toUpperCase(),
+            location,
+            provider,
+            user: req.body.currentUser,
+            encounterId: newObs.encounterId,
+            dateOfBirth: person.birthdate,
+            registerNumber,
+            locationType,
+            serviceDeliveryPoint,
+            age,
+            obsId: newObs.obsId
+          };
+
+          let args = {
+            data: row,
+            headers: {
+              "Content-Type": "application/json"
+            }
+          };
+
+          new client().post(es.protocol + "://" + es.host + ":" + es.port + "/" + es.index + "/visit", args, function (result) {
+
+            res.status(200).json({});
+
+          });
+
+        });
+
+    } else {
+
+      res.status(200).json({});
+
+    }
+
+  })
+
+  router.get('/programs/fetch_locations', function (req, res, next) {
+
+    // let locations = Object.keys(htsIndicatorsMapping);
+
+    const args = {
+      data: {
+        query: {
+          match_all: {
+          }
+        },
+        aggs: {
+          locations: {
+            terms: {
+              field: "locationType.keyword",
+              size: 1000
+            }
+          }
+        }
+      },
+      headers: {
+        "Content-Type": "application/json"
+      }
+    };
+
+    new client().get(es.protocol + "://" + es.host + ":" + es.port + "/" + es.index + "/visit/_search", args, function (result) {
+
+      debug(result);
+
+      let locations = [];
+
+      if (Object.keys(result).indexOf("aggregations") >= 0 && Object.keys(result.aggregations).indexOf("locations") >= 0 &&
+        Object.keys(result.aggregations.locations).indexOf("buckets") >= 0 && result.aggregations.locations.buckets.length > 0) {
+
+        result.aggregations.locations.buckets.forEach(row => {
+
+          locations.push(row.key);
+
+        })
+
+      }
+
+      res
+        .status(200)
+        .json(locations);
+
+    });
+
+  })
+
+  router.get('/version', async function (req, res, next) {
+
+    const git = await runCmd("which git").catch(e => { 
+
+      return res.status(200).json({ version: "3.0.0" });
+
+    });
+
+    if (git.trim().length > 0) {
+
+      const version = await runCmd("git describe").catch(e => {
+
+        return res.status(200).json({ version: "3.0.0" });
+
+       });
+
+      if (String(version).match(/^fatal/i)) {
+
+        res.status(200).json({ version: "3.0.0" });
+
+      } 
+
+    } 
 
   })
 

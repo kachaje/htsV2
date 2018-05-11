@@ -435,6 +435,70 @@ class FindEnteredRecord extends Component {
 
         return reject();
 
+      } else if (String(data["Last HIV Test"]).trim() !== "Never Tested" && String(data["Time Since Last Test"]).match(/\d+D$/) && !String(data["Time Since Last Test"]).match(/^[0-9]D$|^[1-2][0-9]D$|^30D$/)) {
+
+        this
+          .props
+          .showErrorMsg("Invalid Entry", "Number of days between 0 and 30 \n must be entered");
+
+        setTimeout(() => {
+
+          if (this.coords[this.categories["Last HIV Test"]])
+            this.$("bdScroller").scrollLeft = this.coords[this.categories["Last HIV Test"]];
+
+        }
+          , this.scrollDelay)
+
+        return reject();
+
+      } else if (String(data["Last HIV Test"]).trim() !== "Never Tested" && String(data["Time Since Last Test"]).match(/\d+W$/) && !String(data["Time Since Last Test"]).match(/^[1-9]W$|^[1][0-9]W$|^[2][0-6]W$/)) {
+
+        this
+          .props
+          .showErrorMsg("Invalid Entry", "Number of weeks between 1 and 26 \n must be entered");
+
+        setTimeout(() => {
+
+          if (this.coords[this.categories["Last HIV Test"]])
+            this.$("bdScroller").scrollLeft = this.coords[this.categories["Last HIV Test"]];
+
+        }
+          , this.scrollDelay)
+
+        return reject();
+
+      } else if (String(data["Last HIV Test"]).trim() !== "Never Tested" && String(data["Time Since Last Test"]).match(/\d+M$/) && !String(data["Time Since Last Test"]).match(/^[1-9]M$|^[1][0-9]M$|^[2][0-9]M$|^[3][0-6]M$/)) {
+
+        this
+          .props
+          .showErrorMsg("Invalid Entry", "Number of months between 1 and 36 \n must be entered");
+
+        setTimeout(() => {
+
+          if (this.coords[this.categories["Last HIV Test"]])
+            this.$("bdScroller").scrollLeft = this.coords[this.categories["Last HIV Test"]];
+
+        }
+          , this.scrollDelay)
+
+        return reject();
+
+      } else if (String(data["Last HIV Test"]).trim() !== "Never Tested" && String(data["Time Since Last Test"]).match(/\d+Y$/) && !String(data["Time Since Last Test"]).match(/^[1-9]Y$|^[1-9][0-9]Y$|^[1][0][0-9]Y$|^110Y$/)) {
+
+        this
+          .props
+          .showErrorMsg("Invalid Entry", "Number of years between 1 and 110 \n must be entered");
+
+        setTimeout(() => {
+
+          if (this.coords[this.categories["Last HIV Test"]])
+            this.$("bdScroller").scrollLeft = this.coords[this.categories["Last HIV Test"]];
+
+        }
+          , this.scrollDelay)
+
+        return reject();
+
       }
 
       let result = checkData(data, alertsMapping, this.categories);
@@ -526,48 +590,6 @@ class FindEnteredRecord extends Component {
 
     }
 
-    /*if (this.state.data && !String(this.state.data['Number of Items Given:HTS Family Referral Slips']).match(/^[0-9]$|^[1][0-5]$/)) {
-
-      return this
-        .props
-        .showErrorMsg("Invalid Entry", "Number of FRS given \n must be between 0-15");
-
-    }
-
-    if (this.state.data && this.state.data['Referral for Re-Testing'] && ["Re-Test"].indexOf(this.state.data['Referral for Re-Testing']) >= 0) {
-
-      let captureDate = new Date(this.props.app.selectedVisit);
-      let appointmentDate = new Date(this.state.data["Appointment Date Given"]);
-      let minDate = (new Date((new Date(captureDate)).setDate(captureDate.getDate() + 7)));
-      let maxDate = (new Date((new Date(captureDate)).setDate(captureDate.getDate() + 365)));
-
-      if (appointmentDate < minDate || appointmentDate > maxDate) {
-
-        return this
-        .props
-        .showErrorMsg("Invalid Entry", "Appointment date for Re-Test \n must be between 1 week and 1 year from current test date");
-
-      }
-
-    }
-
-    if (this.state.data && this.state.data['Referral for Re-Testing'] && ["Confirmatory Test at HIV Clinic"].indexOf(this.state.data['Referral for Re-Testing']) >= 0) {
-
-      let captureDate = new Date(this.props.app.selectedVisit);
-      let appointmentDate = new Date(this.state.data["Appointment Date Given"]);
-      let maxDate = (new Date((new Date(captureDate)).setDate(captureDate.getDate() + 90)));
-      let minDate = (new Date(captureDate));
-
-      if (appointmentDate < minDate || appointmentDate > maxDate) {
-
-        return this
-        .props
-        .showErrorMsg("Invalid Entry", "Appointment date for Confirmatory Test \n must be between same day and 3 months from current test date");
-
-      }
-
-    }*/
-
     this
       .validated(workingData)
       .then(() => {
@@ -610,13 +632,23 @@ class FindEnteredRecord extends Component {
 
   }
 
+  hideKeyboard() {
+
+    let newState = this.state;
+
+    newState.fieldType = "";
+
+    this.setState(newState);
+
+  }
+
   handleClear() {
 
     this
       .props
       .showConfirmMsg("Confirm Action", "You are about to clear changes on this record. \n Do you want to continue?", "Clear", () => {
 
-        this.setState({ data: {} });
+        this.setState({ data: {}, currentString: "", label: null, fieldType: "" });
 
         if (this.$("bdScroller")) {
 
@@ -924,15 +956,19 @@ class FindEnteredRecord extends Component {
       },
       52: {
         type: "number",
-        hiddens: ["clear", "abc", "qwe", "Unknown", "-"]
+        hiddens: ["clear", "abc", "qwe", "Unknown", "-", "/", "."]
       },
       53: {
         type: "number",
-        hiddens: ["clear", "abc", "qwe", "Unknown", "-"]
+        hiddens: ["clear", "abc", "qwe", "Unknown", "-", "/", "."]
       },
       54: {
         type: "number",
-        hiddens: ["clear", "abc", "qwe", "Unknown", "-"]
+        hiddens: ["clear", "abc", "qwe", "Unknown", "-", "/", "."]
+      },
+      55: {
+        type: "text",
+        hiddens: ["Unknown"]
       }
     };
 
@@ -1223,6 +1259,11 @@ class FindEnteredRecord extends Component {
         field: "Condoms",
         subField: "Female",
         group: 14
+      },
+      55: {
+        category: "Comments",
+        field: "Comments",
+        group: 15
       }
     };
 
@@ -2594,6 +2635,7 @@ class FindEnteredRecord extends Component {
                                     <td
                                       id={"cell" + j + "_" + i}
                                       key={"cell" + j + "_" + i}
+                                      style={{ textAlign: (i === 55 ? "left" : ""), paddingLeft: (i === 55 ? "12px" : "") }}
                                       className={"bdcell" + ([
                                         0,
                                         1,
@@ -2698,7 +2740,7 @@ class FindEnteredRecord extends Component {
                                                     className=
                                                     {(fields[i] ? "normal" : (fieldNames[i] && this.state.label === (fieldNames[i].category ? fieldNames[i].category : "") + (fieldNames[i].field ? ":" + fieldNames[i].field : "") + (fieldNames[i].subField ? ":" + fieldNames[i].subField : "") ? "active" : "inactive"))}
                                                     style=
-                                                    {{ color: ([0, 1, 5, 18, 51, 52, 53, 54].indexOf(i) >= 0 ? (fieldNames[i] && this.state.data && this.state.data[(fieldNames[i].category ? fieldNames[i].category : "") + (fieldNames[i].field ? ":" + fieldNames[i].field : "") + (fieldNames[i].subField ? ":" + fieldNames[i].subField : "")] ? "#c50000" : "#008500") : "#c50000"), fontSize: "16px", width: ([0, 51].indexOf(i) >= 0 ? "150px" : "60px"), marginLeft: ([0].indexOf(i) >= 0 ? "10px !important" : "") }}>
+                                                    {{ color: ([0, 1, 5, 18, 51, 52, 53, 54, 55].indexOf(i) >= 0 ? (fieldNames[i] && this.state.data && this.state.data[(fieldNames[i].category ? fieldNames[i].category : "") + (fieldNames[i].field ? ":" + fieldNames[i].field : "") + (fieldNames[i].subField ? ":" + fieldNames[i].subField : "")] ? "#c50000" : "#008500") : "#c50000"), fontSize: "16px", width: ([0, 51].indexOf(i) >= 0 ? "150px" : (i === 55 ? "150px" : (i === 1 ? "70px" : "60px"))), marginLeft: ([0].indexOf(i) >= 0 ? "10px !important" : (i === 55 ? "3px" : "")) }}>
                                                   {fields[i]
                                                     ? fields[i]
                                                     : (fieldNames[i] && this.state.label === (fieldNames[i].category
@@ -2767,7 +2809,7 @@ class FindEnteredRecord extends Component {
                       <tr>
                         <td
                           style={{
-                            height: "266px",
+                            height: "258px",
                             borderBottom: "1px solid #333333"
                           }}>
                           &nbsp;
@@ -2808,29 +2850,32 @@ class FindEnteredRecord extends Component {
             </tr>
           </tbody>
         </table>
-        <div
-          style={{
-            position: "absolute",
-            zIndex: "100",
-            textAlign: "center",
-            width: "700px",
-            bottom: "10px",
-            left: "calc(50vw - 350px)",
-            backgroundColor: "rgba(255,255,255,0.9)",
-            borderRadius: "5px",
-            border: "1px solid #cccccc"
-          }}>
-          <Keyboard
-            onChangeHandler={this
-              .onChangeHandler
-              .bind(this)}
-            currentString={this.state.currentString}
-            configs={this.state.configs}
-            options={this.props.options}
-            label={this.state.label}
-            responses={this.props.responses}
-            fieldType={this.state.fieldType}
-            smallButtons={true} /></div>
+        <div style={{
+          position: "absolute",
+          zIndex: "100",
+          textAlign: "center",
+          bottom: "10px",
+          width: "100%"
+        }} onClick={(e) => { if (this.ignore) { this.ignore = false; return } else { this.hideKeyboard() } }}>
+          <div
+            style={{
+              display: "inline-block",
+              backgroundColor: "rgba(255,255,255,0.9)",
+              borderRadius: "5px",
+              border: "1px solid #cccccc"
+            }} id="dvBoard" onClick={() => { this.ignore = true }}>
+            <Keyboard
+              onChangeHandler={this
+                .onChangeHandler
+                .bind(this)}
+              currentString={this.state.currentString}
+              configs={this.state.configs}
+              options={this.props.options}
+              label={this.state.label}
+              responses={this.props.responses}
+              fieldType={this.state.fieldType}
+              smallButtons={true} /></div>
+        </div>
       </div>
 
     )

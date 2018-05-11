@@ -28,6 +28,8 @@ class BackdataEntry extends Component {
     return document.getElementById(id);
   }
 
+  ignore = false;
+
   coords = {
     1: 158,
     2: 226,
@@ -63,7 +65,39 @@ class BackdataEntry extends Component {
     "Number of Items Given": 14
   }
 
+  currentGroup = 1
+
+  moveCursor(group) {
+
+    for (const element of document.body.getElementsByClassName(this.currentGroup)) {
+
+      element.style.backgroundColor = "";
+
+    }
+
+    this.currentGroup = group;
+
+    for (const element of document.body.getElementsByClassName(this.currentGroup)) {
+
+      element.style.backgroundColor = "rgba(200,200,200,0.3)";
+
+    }
+
+  }
+
+  hideKeyboard() {
+
+    let newState = this.state;
+
+    newState.fieldType = "";
+
+    this.setState(newState);
+
+  }
+
   handleCellClick(fieldType, category, field, subField, subSubField, j, i, group, e) {
+
+    this.moveCursor(group);
 
     const scrollDelay = 100;
 
@@ -120,6 +154,8 @@ class BackdataEntry extends Component {
           if (coords[group])
             this.$("bdScroller").scrollLeft = coords[group];
 
+          this.moveCursor(group + 1);
+
         }
           , scrollDelay)
 
@@ -161,6 +197,8 @@ class BackdataEntry extends Component {
           if (coords[group])
             this.$("bdScroller").scrollLeft = coords[group];
 
+          this.moveCursor(group + 1);
+
         }
           , scrollDelay)
 
@@ -194,6 +232,8 @@ class BackdataEntry extends Component {
 
           if (coords[group])
             this.$("bdScroller").scrollLeft = coords[group];
+
+          this.moveCursor(group + 1);
 
         }
           , scrollDelay)
@@ -312,7 +352,7 @@ class BackdataEntry extends Component {
   async saveData() {
 
     let newState = Object.assign({}, this.state.data, {
-      "Set Date": this.props.responses["Set Date"],
+      "Testing Date": this.props.responses["Testing Date"],
       "Current Location": (this.props.app && this.props.app.currentLocation
         ? this.props.app.currentLocation
         : null),
@@ -343,6 +383,8 @@ class BackdataEntry extends Component {
             .$("bdScroller")
             .scrollLeft = 0;
 
+          this.moveCursor(1);
+
         }
 
         await this
@@ -352,6 +394,17 @@ class BackdataEntry extends Component {
         this
           .props
           .handleDirectInputChange("Total Captured Entries", count, this.props.group);
+
+      })
+      .catch(() => {
+
+        setTimeout(() => {
+
+          this
+            .$("bdScroller")
+            .scrollLeft = this.coords["HTS Provider ID"];
+
+        }, this.scrollDelay)
 
       });
 
@@ -633,6 +686,70 @@ class BackdataEntry extends Component {
 
         return reject();
 
+      } else if (String(this.state.data["Last HIV Test"]).trim() !== "Never Tested" && String(this.state.data["Time Since Last Test"]).match(/\d+D$/) && !String(this.state.data["Time Since Last Test"]).match(/^[0-9]D$|^[1-2][0-9]D$|^30D$/)) {
+
+        this
+          .props
+          .showErrorMsg("Invalid Entry", "Number of days between 0 and 30 \n must be entered");
+
+        setTimeout(() => {
+
+          if (this.coords[this.categories["Last HIV Test"]])
+            this.$("bdScroller").scrollLeft = this.coords[this.categories["Last HIV Test"]];
+
+        }
+          , this.scrollDelay)
+
+        return reject();
+
+      } else if (String(this.state.data["Last HIV Test"]).trim() !== "Never Tested" && String(this.state.data["Time Since Last Test"]).match(/\d+W$/) && !String(this.state.data["Time Since Last Test"]).match(/^[1-9]W$|^[1][0-9]W$|^[2][0-6]W$/)) {
+
+        this
+          .props
+          .showErrorMsg("Invalid Entry", "Number of weeks between 1 and 26 \n must be entered");
+
+        setTimeout(() => {
+
+          if (this.coords[this.categories["Last HIV Test"]])
+            this.$("bdScroller").scrollLeft = this.coords[this.categories["Last HIV Test"]];
+
+        }
+          , this.scrollDelay)
+
+        return reject();
+
+      } else if (String(this.state.data["Last HIV Test"]).trim() !== "Never Tested" && String(this.state.data["Time Since Last Test"]).match(/\d+M$/) && !String(this.state.data["Time Since Last Test"]).match(/^[1-9]M$|^[1][0-9]M$|^[2][0-9]M$|^[3][0-6]M$/)) {
+
+        this
+          .props
+          .showErrorMsg("Invalid Entry", "Number of months between 1 and 36 \n must be entered");
+
+        setTimeout(() => {
+
+          if (this.coords[this.categories["Last HIV Test"]])
+            this.$("bdScroller").scrollLeft = this.coords[this.categories["Last HIV Test"]];
+
+        }
+          , this.scrollDelay)
+
+        return reject();
+
+      } else if (String(this.state.data["Last HIV Test"]).trim() !== "Never Tested" && String(this.state.data["Time Since Last Test"]).match(/\d+Y$/) && !String(this.state.data["Time Since Last Test"]).match(/^[1-9]Y$|^[1-9][0-9]Y$|^[1][0][0-9]Y$|^110Y$/)) {
+
+        this
+          .props
+          .showErrorMsg("Invalid Entry", "Number of years between 1 and 110 \n must be entered");
+
+        setTimeout(() => {
+
+          if (this.coords[this.categories["Last HIV Test"]])
+            this.$("bdScroller").scrollLeft = this.coords[this.categories["Last HIV Test"]];
+
+        }
+          , this.scrollDelay)
+
+        return reject();
+
       } else if (String(this.state.data["Last HIV Test"]).trim() !== "Never Tested") {
 
         const duration = this.getDuration(String(this.state.data["Time Since Last Test"]));
@@ -659,7 +776,7 @@ class BackdataEntry extends Component {
 
       }
 
-      if (Object.keys(this.state.data).indexOf("HIV Rapid Test Outcomes") >= 0 && Object.keys(this.state.data["HIV Rapid Test Outcomes"]).indexOf("Immediate Repeat") >= 0 && ((Object.keys(this.state.data["HIV Rapid Test Outcomes"]["Immediate Repeat"]).length > 0 && Object.keys(this.state.data["HIV Rapid Test Outcomes"]["First Pass"]).length < 2) || (Object.keys(this.state.data["HIV Rapid Test Outcomes"]["Immediate Repeat"]).length > 0 && this.state.data["HIV Rapid Test Outcomes"]["Immediate Repeat"]).length < 2)) {
+      if (((Object.keys(this.state.data).indexOf("HIV Rapid Test Outcomes") >= 0 && Object.keys(this.state.data["HIV Rapid Test Outcomes"]).indexOf("Immediate Repeat") >= 0 && ((Object.keys(this.state.data["HIV Rapid Test Outcomes"]["Immediate Repeat"]).length > 0 && Object.keys(this.state.data["HIV Rapid Test Outcomes"]["First Pass"]).length < 2) || (Object.keys(this.state.data["HIV Rapid Test Outcomes"]["Immediate Repeat"]).length > 0 && this.state.data["HIV Rapid Test Outcomes"]["Immediate Repeat"]).length < 2)) && ["Last Positive", "Last Inconclusive", "Last Exposed Infant"].indexOf(String(this.state.data["Last HIV Test"]).trim()) >= 0) || ((Object.keys(this.state.data).indexOf("HIV Rapid Test Outcomes") >= 0 && Object.keys(this.state.data["HIV Rapid Test Outcomes"]).indexOf("Immediate Repeat") >= 0 && (((Object.keys(this.state.data["HIV Rapid Test Outcomes"]["Immediate Repeat"]).length > 0 && Object.keys(this.state.data["HIV Rapid Test Outcomes"]["First Pass"]).length < 2) || (Object.keys(this.state.data["HIV Rapid Test Outcomes"]["Immediate Repeat"]).length > 0 && this.state.data["HIV Rapid Test Outcomes"]["Immediate Repeat"]).length < 2))) && ["Last Negative", "Never Tested"].indexOf(String(this.state.data["Last HIV Test"]).trim()) >= 0)) {
 
         this
           .props
@@ -795,7 +912,7 @@ class BackdataEntry extends Component {
 
     if (this.state.data && this.state.data['Referral for Re-Testing'] && ["Re-Test"].indexOf(this.state.data['Referral for Re-Testing']) >= 0) {
 
-      let captureDate = new Date(this.props.responses["Set Date"]);
+      let captureDate = new Date(this.props.responses["Testing Date"]);
       let appointmentDate = new Date(this.state.data["Appointment Date Given"]);
       let minDate = (new Date((new Date(captureDate)).setDate(captureDate.getDate() + 7)));
       let maxDate = (new Date((new Date(captureDate)).setDate(captureDate.getDate() + 365)));
@@ -812,7 +929,7 @@ class BackdataEntry extends Component {
 
     if (this.state.data && this.state.data['Referral for Re-Testing'] && ["Confirmatory Test at HIV Clinic"].indexOf(this.state.data['Referral for Re-Testing']) >= 0) {
 
-      let captureDate = new Date(this.props.responses["Set Date"]);
+      let captureDate = new Date(this.props.responses["Testing Date"]);
       let appointmentDate = new Date(this.state.data["Appointment Date Given"]);
       let maxDate = (new Date((new Date(captureDate)).setDate(captureDate.getDate() + 90)));
       let minDate = (new Date(captureDate));
@@ -888,9 +1005,23 @@ class BackdataEntry extends Component {
       .props
       .fetchLastBDRow("/programs/fetch_last_bd_record/" + id);
 
+    this.moveCursor(this.currentGroup);
+
+    setTimeout(() => {
+
+      if (this.coords[this.currentGroup])
+        this.$("bdScroller").scrollLeft = this.coords[this.currentGroup];
+
+    }
+      , this.scrollDelay)
+
   }
 
   render() {
+
+    let captureDate = new Date(this.props.responses["Testing Date"]);
+    let minDate = (new Date((new Date(captureDate)).setDate(captureDate.getDate())));
+    let maxDate = (new Date((new Date(captureDate)).setDate(captureDate.getDate() + 365)));
 
     const fields = {
       2: "M",
@@ -1014,7 +1145,7 @@ class BackdataEntry extends Component {
       },
       18: {
         type: "period",
-        hiddens: ["clear", "abc", "qwe", "Unknown", "-"]
+        hiddens: ["clear", "abc", "qwe", "Unknown", "-", "/", "."]
       },
       19: {
         type: "click",
@@ -1147,8 +1278,8 @@ class BackdataEntry extends Component {
       51: {
         type: "date",
         hiddens: [],
-        minDate: "today",
-        maxDate: "today + 1year"
+        minDate: minDate.format("YYYY-mm-dd"),
+        maxDate: maxDate.format("YYYY-mm-dd")
       },
       52: {
         type: "number",
@@ -1161,6 +1292,10 @@ class BackdataEntry extends Component {
       54: {
         type: "number",
         hiddens: ["clear", "abc", "qwe", "Unknown", "-", ".", "/"]
+      },
+      55: {
+        type: "text",
+        hiddens: ["Unknown"]
       }
     };
 
@@ -1373,7 +1508,7 @@ class BackdataEntry extends Component {
       },
       39: {
         category: "Result Given to Client",
-        field: "Inconclusive",
+        field: "Confirmatory Inconclusive",
         group: 10
       },
       40: {
@@ -1451,12 +1586,20 @@ class BackdataEntry extends Component {
         field: "Condoms",
         subField: "Female",
         group: 14
+      },
+      55: {
+        category: "Comments",
+        field: "Comments",
+        group: 15
       }
     };
 
     return (
 
       <div className="mainContainer">
+        <style>
+
+        </style>
         <table width="100%">
           <tbody>
             <tr>
@@ -1497,7 +1640,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">HTS Provider ID</th>
+                          className="boldRight 1">HTS Provider ID</th>
                         <th
                           colSpan="3"
                           style={{
@@ -1506,7 +1649,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Sex/Pregnancy</th>
+                          className="boldRight 2">Sex/Pregnancy</th>
                         <th
                           rowSpan="4"
                           style={{
@@ -1515,14 +1658,14 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Age</th>
+                          className="boldRight 3">Age</th>
                         <th
                           colSpan="4"
                           style={{
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Age Group</th>
+                          className="boldRight 4">Age Group</th>
                         <th
                           colSpan="3"
                           style={{
@@ -1530,14 +1673,14 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">HTS Access Type</th>
+                          className="boldRight 5">HTS Access Type</th>
                         <th
                           colSpan="5"
                           style={{
                             borderLeft: "1px solid rgb(51, 51, 51)",
                             verticalAlign: "top",
                             fontSize: "14px"
-                          }}>Last HIV Test</th>
+                          }} className="6">Last HIV Test</th>
                         <td
                           rowSpan="4"
                           style={{
@@ -1545,7 +1688,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">
+                          className="boldRight 6">
                           <b>Time<br />Since Last<br />Test</b><br />
                           <br />
                           <span
@@ -1564,7 +1707,7 @@ class BackdataEntry extends Component {
                             textAlign: "center",
                             fontSize: "14px"
                           }}
-                          className="boldRight">
+                          className="boldRight 7">
                           <b>Partner Present</b><br />
                           <span
                             style={{
@@ -1578,7 +1721,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">HIV Rapid Test Outcomes</th>
+                          className="boldRight 8">HIV Rapid Test Outcomes</th>
                         <th
                           colSpan="5"
                           style={{
@@ -1587,14 +1730,14 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Outcome Summary</th>
+                          className="boldRight 9">Outcome Summary</th>
                         <th
                           colSpan="6"
                           style={{
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Result Given to Client</th>
+                          className="boldRight 10">Result Given to Client</th>
                         <th
                           colSpan="4"
                           rowSpan="2"
@@ -1604,7 +1747,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Partner HIV Status</th>
+                          className="boldRight 11">Partner HIV Status</th>
                         <th
                           colSpan="4"
                           rowSpan="2"
@@ -1614,7 +1757,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Client Risk Category</th>
+                          className="boldRight 12">Client Risk Category</th>
                         <th
                           colSpan="4"
                           rowSpan="2"
@@ -1624,7 +1767,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Referral for Re - Testing</th>
+                          className="boldRight 13">Referral for Re - Testing</th>
                         <th
                           colSpan="3"
                           style={{
@@ -1634,7 +1777,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Number of Items
+                          className="boldRight 14">Number of Items
                           <br />Given</th>
                         <th
                           style={{
@@ -1644,7 +1787,7 @@ class BackdataEntry extends Component {
                             borderLeft: "1px solid rgb(51, 51, 51)",
                             fontSize: "14px"
                           }}
-                          className="boldRight">Comments</th>
+                          className="boldRight 15">Comments</th>
                         <td
                           rowSpan="4"
                           colSpan="2"
@@ -1661,7 +1804,7 @@ class BackdataEntry extends Component {
                             borderLeft: "1px solid rgb(51, 51, 51)",
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             height: "70px"
-                          }}>
+                          }} className="2">
                           <div
                             style={{
                               height: "120px",
@@ -1682,7 +1825,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "100px"
-                          }}>
+                          }} className="2">
                           <div
                             style={{
                               height: "120px",
@@ -1708,7 +1851,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "100px"
-                          }}>
+                          }} className="2">
                           <div
                             style={{
                               height: "120px",
@@ -1734,7 +1877,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "100px"
-                          }}>
+                          }} className="4">
                           <div
                             style={{
                               height: "120px",
@@ -1759,7 +1902,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="4">
                           <div
                             style={{
                               height: "120px",
@@ -1784,7 +1927,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="4">
                           <div
                             style={{
                               height: "120px",
@@ -1810,7 +1953,7 @@ class BackdataEntry extends Component {
                             width: "30px",
                             height: "50px"
                           }}
-                          className="boldRight">
+                          className="boldRight 4">
                           <div
                             style={{
                               height: "120px",
@@ -1836,7 +1979,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="5">
                           <div
                             style={{
                               height: "120px",
@@ -1867,7 +2010,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="5">
                           <div
                             style={{
                               height: "120px",
@@ -1898,7 +2041,7 @@ class BackdataEntry extends Component {
                             width: "30px",
                             height: "50px"
                           }}
-                          className="boldRight">
+                          className="boldRight 5">
                           <div
                             style={{
                               height: "120px",
@@ -1925,7 +2068,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="6">
                           <div
                             style={{
                               height: "120px",
@@ -1946,7 +2089,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="6">
                           <div
                             style={{
                               height: "120px",
@@ -1967,7 +2110,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="6">
                           <div
                             style={{
                               height: "120px",
@@ -1988,7 +2131,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="6">
                           <div
                             style={{
                               height: "120px",
@@ -2016,7 +2159,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="6">
                           <div
                             style={{
                               height: "120px",
@@ -2038,7 +2181,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)",
                             width: "30px",
                             height: "50px"
-                          }}>
+                          }} className="7">
                           <div
                             style={{
                               height: "120px",
@@ -2061,7 +2204,7 @@ class BackdataEntry extends Component {
                             width: "30px",
                             height: "50px"
                           }}
-                          className="boldRight">
+                          className="boldRight 7">
                           <div
                             style={{
                               height: "120px",
@@ -2081,13 +2224,13 @@ class BackdataEntry extends Component {
                           style={{
                             borderRight: "1px solid rgb(51, 51, 51)"
                           }}
-                          className="boldRight"></td>
+                          className="boldRight 8"></td>
                         <td
                           colSpan="2"
                           style={{
                             fontSize: "12px",
                             textAlign: "center"
-                          }}>Only Test 1 used</td>
+                          }} className="9">Only Test 1 used</td>
                         <td
                           colSpan="3"
                           style={{
@@ -2095,9 +2238,9 @@ class BackdataEntry extends Component {
                             fontSize: "12px",
                             textAlign: "center"
                           }}
-                          className="boldRight">Test 1 &amp; Test 2
+                          className="boldRight 9">Test 1 &amp; Test 2
                       <br />Used± Repeat</td>
-                        <td colSpan="4">&nbsp;</td>
+                        <td colSpan="4" className="10">&nbsp;</td>
                         <td
                           colSpan="2"
                           style={{
@@ -2106,7 +2249,7 @@ class BackdataEntry extends Component {
                             fontSize: "12px",
                             textAlign: "center",
                             verticalAlign: "bottom"
-                          }}>Confirmatory
+                          }} className="10">Confirmatory
                       <br />Results for
                       <br />Clients Last +</td>
                         <td
@@ -2114,7 +2257,7 @@ class BackdataEntry extends Component {
                           style={{
                             verticalAlign: "top",
                             fontSize: "12px"
-                          }}>
+                          }} className="14">
                           <b>HTS
                         <br />Family
                         <br />Ref Slips</b>
@@ -2127,7 +2270,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "12px"
                           }}
-                          className="boldRight">
+                          className="boldRight 14">
                           <b>Condoms</b>
                         </td>
                         <td
@@ -2136,7 +2279,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "top",
                             fontSize: "12px",
                             textAlign: "center"
-                          }}>
+                          }} className="15">
                           <i >Specimen ID for DBS
                         <br />samples sent to lab.</i><br />
                         </td>
@@ -2148,7 +2291,7 @@ class BackdataEntry extends Component {
                             fontSize: "12px",
                             textAlign: "center",
                             verticalAlign: "bottom"
-                          }}>First Pass</td>
+                          }} className="8">First Pass</td>
                         <td
                           colSpan="4"
                           style={{
@@ -2157,7 +2300,7 @@ class BackdataEntry extends Component {
                             textAlign: "center",
                             verticalAlign: "bottom"
                           }}
-                          className="boldRight">Immediate Repeat</td>
+                          className="boldRight 8">Immediate Repeat</td>
                         <td
                           align="center"
                           style={{
@@ -2165,7 +2308,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="9">
                           <div
                             style={{
                               height: "120px",
@@ -2191,7 +2334,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="9">
                           <div
                             style={{
                               height: "120px",
@@ -2217,7 +2360,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="9">
                           <div
                             style={{
                               height: "120px",
@@ -2246,7 +2389,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="9">
                           <div
                             style={{
                               height: "120px",
@@ -2276,7 +2419,7 @@ class BackdataEntry extends Component {
                             fontSize: "12px"
                           }}
                           rowSpan="2"
-                          className="boldRight">
+                          className="boldRight 9">
                           <div
                             style={{
                               height: "120px",
@@ -2304,7 +2447,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="10">
                           <div
                             style={{
                               height: "120px",
@@ -2329,7 +2472,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="10">
                           <div
                             style={{
                               height: "120px",
@@ -2354,7 +2497,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="10">
                           <div
                             style={{
                               height: "120px",
@@ -2382,7 +2525,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="10">
                           <div
                             style={{
                               height: "120px",
@@ -2407,7 +2550,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="10">
                           <div
                             style={{
                               height: "120px",
@@ -2434,7 +2577,7 @@ class BackdataEntry extends Component {
                             fontSize: "12px"
                           }}
                           rowSpan="2"
-                          className="boldRight">
+                          className="boldRight 10">
                           <div
                             style={{
                               height: "120px",
@@ -2454,7 +2597,7 @@ class BackdataEntry extends Component {
                             borderLeft: "1px solid rgb(51, 51, 51)",
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="11">
                           <div
                             style={{
                               height: "120px",
@@ -2473,7 +2616,7 @@ class BackdataEntry extends Component {
                           style={{
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="11">
                           <div
                             style={{
                               height: "120px",
@@ -2492,7 +2635,7 @@ class BackdataEntry extends Component {
                           style={{
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="11">
                           <div
                             style={{
                               height: "120px",
@@ -2513,7 +2656,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
                           rowSpan="2"
-                          className="boldRight">
+                          className="boldRight 11">
                           <div
                             style={{
                               height: "120px",
@@ -2532,7 +2675,7 @@ class BackdataEntry extends Component {
                           style={{
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="12">
                           <div
                             style={{
                               height: "120px",
@@ -2554,7 +2697,7 @@ class BackdataEntry extends Component {
                           style={{
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="12">
                           <div
                             style={{
                               height: "120px",
@@ -2576,7 +2719,7 @@ class BackdataEntry extends Component {
                           style={{
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="12">
                           <div
                             style={{
                               height: "120px",
@@ -2607,7 +2750,7 @@ class BackdataEntry extends Component {
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
                           rowSpan="2"
-                          className="boldRight">
+                          className="boldRight 12">
                           <div
                             style={{
                               height: "120px",
@@ -2630,7 +2773,7 @@ class BackdataEntry extends Component {
                           style={{
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="13">
                           <div
                             style={{
                               height: "120px",
@@ -2649,7 +2792,7 @@ class BackdataEntry extends Component {
                           style={{
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="13">
                           <div
                             style={{
                               height: "120px",
@@ -2668,7 +2811,7 @@ class BackdataEntry extends Component {
                           style={{
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="13">
                           <div
                             style={{
                               height: "120px",
@@ -2691,7 +2834,7 @@ class BackdataEntry extends Component {
                             verticalAlign: "bottom"
                           }}
                           rowSpan="2"
-                          className="boldRight">Appointment
+                          className="boldRight 13">Appointment
                 <br />Date Given</td>
                         <td
                           align="center"
@@ -2702,7 +2845,7 @@ class BackdataEntry extends Component {
                             fontSize: "12px"
                           }}
                           rowSpan="2"
-                          className="boldRight">
+                          className="boldRight 14">
                           <i>1 Slip for each
                   <br />partner + each
                   <br />U5 child with
@@ -2712,7 +2855,7 @@ class BackdataEntry extends Component {
                           style={{
                             borderBottom: "1px solid rgb(51, 51, 51)"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="14">
                           <div
                             style={{
                               height: "120px",
@@ -2733,7 +2876,7 @@ class BackdataEntry extends Component {
                             borderRight: "1px solid rgb(51, 51, 51)"
                           }}
                           rowSpan="2"
-                          className="boldRight">
+                          className="boldRight 14">
                           <div
                             style={{
                               height: "120px",
@@ -2756,7 +2899,7 @@ class BackdataEntry extends Component {
                             fontSize: "12px",
                             textAlign: "center"
                           }}
-                          rowSpan="2">
+                          rowSpan="2" className="15">
                           <i>Follow - up outcome for
                   <br />clients referred, etc.</i>
                         </td>
@@ -2769,7 +2912,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          colSpan="2">Test 1</td>
+                          colSpan="2" className="8">Test 1</td>
                         <td
                           align="center"
                           style={{
@@ -2777,7 +2920,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          colSpan="2">Test 2</td>
+                          colSpan="2" className="8">Test 2</td>
                         <td
                           align="center"
                           style={{
@@ -2785,7 +2928,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          colSpan="2">Test 1</td>
+                          colSpan="2" className="8">Test 1</td>
                         <td
                           align="center"
                           style={{
@@ -2794,7 +2937,7 @@ class BackdataEntry extends Component {
                             fontStyle: "italic",
                             fontSize: "12px"
                           }}
-                          colSpan="2">Test 2</td>
+                          colSpan="2" className="8">Test 2</td>
                       </tr>
 
                       {Array(2)
@@ -2845,7 +2988,7 @@ class BackdataEntry extends Component {
                                         55
                                       ].indexOf(i) >= 0
                                         ? " boldRight"
-                                        : "")}
+                                        : "") + (" " + (fieldNames[i] && fieldNames[i].group ? fieldNames[i].group : ""))}
                                       onMouseDown=
                                       {j === 1 ? (this.handleCellClick.bind(this, fieldTypes[i], (fieldNames[i] && fieldNames[i].category ? fieldNames[i].category : null), (fieldNames[i] && fieldNames[i].field ? fieldNames[i].field : null), (fieldNames[i] && fieldNames[i].subField ? fieldNames[i].subField : null), (fieldNames[i] && fieldNames[i].subSubField ? fieldNames[i].subSubField : null), j, i, (fieldNames[i] && fieldNames[i].group ? fieldNames[i].group : null))) : () => { }}>{fields[i]
                                         ? (j === 1
@@ -2921,7 +3064,7 @@ class BackdataEntry extends Component {
                                                     className=
                                                     {(fields[i] ? "normal" : (fieldNames[i] && this.state.label === (fieldNames[i].category ? fieldNames[i].category : "") + (fieldNames[i].field ? ":" + fieldNames[i].field : "") + (fieldNames[i].subField ? ":" + fieldNames[i].subField : "") ? "active" : "inactive"))}
                                                     style=
-                                                    {{ color: "#c50000", fontSize: "16px", textAlign: "center", width: (i === 51 ? "120px" : "60px") }}>
+                                                    {{ color: "#c50000", fontSize: "16px", textAlign: "center", width: (i === 51 ? "130px" : (i === 55 ? "150px" : (i === 1 ? "70px" : "60px"))) }}>
                                                   {fields[i]
                                                     ? fields[i]
                                                     : (fieldNames[i] && this.state.label === (fieldNames[i].category
@@ -2974,7 +3117,7 @@ class BackdataEntry extends Component {
                       <tr>
                         <td
                           style={{
-                            height: "266px",
+                            height: "258px",
                             borderBottom: "1px solid #333333"
                           }}>
                           &nbsp;
@@ -3016,29 +3159,32 @@ class BackdataEntry extends Component {
           </tbody>
         </table>
 
-        <div
-          style={{
-            position: "absolute",
-            zIndex: "100",
-            textAlign: "center",
-            width: "700px",
-            bottom: "10px",
-            left: "calc(50vw - 350px)",
-            backgroundColor: "rgba(255,255,255,0.9)",
-            borderRadius: "5px",
-            border: "1px solid #cccccc"
-          }}>
-          <Keyboard
-            onChangeHandler={this
-              .onChangeHandler
-              .bind(this)}
-            currentString={this.state.currentString}
-            configs={this.state.configs}
-            options={this.props.options}
-            label={this.state.label}
-            responses={this.props.responses}
-            fieldType={this.state.fieldType}
-            smallButtons={true} /></div>
+        <div style={{
+          position: "absolute",
+          zIndex: "100",
+          textAlign: "center",
+          bottom: "10px",
+          width: "100%"
+        }} onClick={(e) => { if (this.ignore) { this.ignore = false; return } else { this.hideKeyboard() } }}>
+          <div
+            style={{
+              display: "inline-block",
+              backgroundColor: "rgba(255,255,255,0.9)",
+              borderRadius: "5px",
+              border: "1px solid #cccccc"
+            }} id="dvBoard" onClick={() => { this.ignore = true }}>
+            <Keyboard
+              onChangeHandler={this
+                .onChangeHandler
+                .bind(this)}
+              currentString={this.state.currentString}
+              configs={this.state.configs}
+              options={this.props.options}
+              label={this.state.label}
+              responses={this.props.responses}
+              fieldType={this.state.fieldType}
+              smallButtons={true} /></div>
+        </div>
       </div>
 
     )

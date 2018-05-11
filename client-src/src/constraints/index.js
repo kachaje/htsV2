@@ -677,7 +677,7 @@ const lastPositiveTest1And2Negative = (data, alertsMapping, categories) => {
     result.title = alertsMapping["Missing Referral for Re-Testing"].title;
     result.group = categories[alertsMapping["Missing Referral for Re-Testing"].category];
 
-  } else if (data["Referral for Re-Testing"] !== "Re-Test") {
+  } else if (data["Referral for Re-Testing"] !== "Re-Test" && ["Last Positive", "Last Inconclusive", "Last Exposed Infant"].indexOf(String(data["Last HIV Test"]).trim()) < 0) {
 
     result.error = true;
     result.message = alertsMapping["Invalid Referral for Re-Testing"].message;
@@ -1155,6 +1155,37 @@ module.exports.validate = (data = {}, alertsMapping = {}, categories = {}) => {
     result.group = categories[alertsMapping["Sex/Pregnancy does not match entered age"].category];
 
   } else if (Object.keys(data).indexOf("Last HIV Test") >= 0) {
+
+    let nonReactive = false;
+
+    if (Object.keys(data).indexOf("HIV Rapid Test Outcomes") >= 0) {
+
+      if (Object.keys(data["HIV Rapid Test Outcomes"]).indexOf("First Pass") >= 0) {
+
+        if (Object.keys(data["HIV Rapid Test Outcomes"]["First Pass"]).indexOf("Test 1") >= 0 && Object.keys(data["HIV Rapid Test Outcomes"]["First Pass"]).indexOf("Test 2") >= 0) {
+
+          if (data["HIV Rapid Test Outcomes"]["First Pass"]["Test 1"] === "Non-Reactive" && data["HIV Rapid Test Outcomes"]["First Pass"]["Test 2"] === "Non-Reactive") {
+
+            nonReactive = true;
+
+          }
+
+        }
+
+      }
+
+    }
+
+    if (["Never Tested", "Last Negative"].indexOf(data["Last HIV Test"]) >= 0 && nonReactive) {
+
+      return {
+        error: true,
+        message: alertsMapping["Invalid Outcome Summary"].message,
+        title: alertsMapping["Invalid Outcome Summary"].title,
+        group: categories[alertsMapping["Invalid Outcome Summary"].category]
+      };
+
+    }
 
     switch (data["Last HIV Test"]) {
 

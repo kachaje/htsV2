@@ -32,9 +32,36 @@ const ageToDays = (age) => {
 
 }
 
-export function validated(props, state) {
+const evalInline = (msg, lDelim = '{{', rDelim = '}}') => {
 
-  let valid = false;
+  const re = new RegExp(lDelim + '[^' + rDelim + ']+' + rDelim, 'g');
+  const parts = msg.match(re);
+
+  let result = String(msg);
+
+  const thisYear = (new Date()).getFullYear();
+
+  parts.forEach(part => {
+
+    let row = String(part)
+      .replace((new RegExp(lDelim, 'g')), '')
+      .replace((new RegExp(rDelim, 'g')), '')
+      .replace(/thisyear/ig, thisYear);
+
+    // eslint-disable-next-line
+    row = eval(row);
+
+    result = result.replace((new RegExp(part, 'g')), row);
+
+  });
+
+  return result;
+
+}
+
+export async function validated(props, state) {
+
+  let valid = true;
   let msg = "Required field empty!";
   let title = "Error";
 
@@ -44,7 +71,7 @@ export function validated(props, state) {
       ? props.wf[state.currentWorkflow].currentNode.label
       : ""].length <= 0)) {
 
-    return { valid: false, message: msg };
+    return { valid: false, msg };
 
   }
 
@@ -56,7 +83,30 @@ export function validated(props, state) {
         ? props.wf[state.currentWorkflow].currentNode.label
         : ""].optional === true) {
 
-    return { valid: true, message: null };
+    valid = true;
+    msg = "";
+
+  } else if (props.wf && (!props.wf.responses || (props.wf.responses && props.wf.responses[state.currentWorkflow] && props.wf.responses[state.currentWorkflow][props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+    ? props.wf[state.currentWorkflow].currentNode.label
+    : ""] && props.wf.responses[state.currentWorkflow][props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+      ? props.wf[state.currentWorkflow].currentNode.label
+      : ""].length <= 0 && props.app.configs && props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+        ? props.wf[state.currentWorkflow].currentNode.label
+        : ""] && Object.keys(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+          ? props.wf[state.currentWorkflow].currentNode.label
+          : ""]).indexOf("optional") < 0))) {
+
+    return {
+      valid: false, message: (props.app.configs && props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+        ? props.wf[state.currentWorkflow].currentNode.label
+        : ""] && Object.keys(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+          ? props.wf[state.currentWorkflow].currentNode.label
+          : ""]).indexOf("validationMessage") >= 0
+        ? props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+          ? props.wf[state.currentWorkflow].currentNode.label
+          : ""].validationMessage
+        : msg)
+    }
 
   }
 
@@ -68,7 +118,8 @@ export function validated(props, state) {
         ? props.wf[state.currentWorkflow].currentNode.label
         : ""].visible === false) {
 
-    return { valid: true, message: null };
+    valid = true;
+    msg = "";
 
   }
 
@@ -76,24 +127,30 @@ export function validated(props, state) {
     ? props.wf[state.currentWorkflow].currentNode.label
     : ""] && Object.keys(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
       ? props.wf[state.currentWorkflow].currentNode.label
-      : ""]).indexOf("validator") >= 0 && !props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
-        ? props.wf[state.currentWorkflow].currentNode.label
-        : ""].validator(props.wf.responses[state.currentWorkflow][props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
-          ? props.wf[state.currentWorkflow].currentNode.label
-          : ""])) {
+      : ""]).indexOf("validator") >= 0) {
 
-    return {
-      valid: false,
-      message: (props.app.configs && props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+    const valid = await props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+      ? props.wf[state.currentWorkflow].currentNode.label
+      : ""].validator(props.wf.responses[state.currentWorkflow][props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
         ? props.wf[state.currentWorkflow].currentNode.label
-        : ""] && Object.keys(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+        : ""]).catch(e => { return false; });
+
+    if (valid !== true) {
+
+      return {
+        valid: false,
+        message: (props.app.configs && props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
           ? props.wf[state.currentWorkflow].currentNode.label
-          : ""]).indexOf("validatorMessage") >= 0
-        ? props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
-          ? props.wf[state.currentWorkflow].currentNode.label
-          : ""].validatorMessage
-        : "Invalid value entered")
-    };
+          : ""] && Object.keys(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+            ? props.wf[state.currentWorkflow].currentNode.label
+            : ""]).indexOf("validationMessage") >= 0
+          ? props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+            ? props.wf[state.currentWorkflow].currentNode.label
+            : ""].validationMessage
+          : "Invalid value entered")
+      };
+
+    }
 
   }
 
@@ -122,6 +179,16 @@ export function validated(props, state) {
         : ""]
       : "");
 
+    if (currentValue.trim().length <= 0) {
+
+      return {
+        valid: false, title: "Missing data", message: (props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+          ? props.wf[state.currentWorkflow].currentNode.label
+          : "Required field") + " \n must be entered"
+      };
+
+    }
+
     let parts = params.split(" ");
 
     if (parts.length === 1) {
@@ -132,7 +199,8 @@ export function validated(props, state) {
 
           if (ageToDays(currentValue) < tokens.age) {
 
-            return { valid: true, message: null };
+            valid = true;
+            msg = "";
 
           } else {
 
@@ -151,8 +219,6 @@ export function validated(props, state) {
       }
 
     }
-
-    // return {valid: true, message: null};
 
   }
 
@@ -195,9 +261,9 @@ export function validated(props, state) {
         return {
           valid: false, message: (props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
             ? props.wf[state.currentWorkflow].currentNode.label
-            : ""].validationMessage ? props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+            : ""].validationMessage ? evalInline(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
               ? props.wf[state.currentWorkflow].currentNode.label
-              : ""].validationMessage : "Value less than expected minimum")
+              : ""].validationMessage) : "Value less than expected minimum")
         };
 
       }
@@ -213,16 +279,14 @@ export function validated(props, state) {
         return {
           valid: false, message: (props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
             ? props.wf[state.currentWorkflow].currentNode.label
-            : ""].validationMessage ? props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+            : ""].validationMessage ? evalInline(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
               ? props.wf[state.currentWorkflow].currentNode.label
-              : ""].validationMessage : "Value less than expected minimum")
+              : ""].validationMessage) : "Value less than expected minimum")
         };
 
       }
 
     }
-
-    // return {valid: true, message: null};
 
   }
 
@@ -265,9 +329,9 @@ export function validated(props, state) {
         return {
           valid: false, message: (props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
             ? props.wf[state.currentWorkflow].currentNode.label
-            : ""].validationMessage ? props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+            : ""].validationMessage ? evalInline(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
               ? props.wf[state.currentWorkflow].currentNode.label
-              : ""].validationMessage : "Value greater than expected maximum")
+              : ""].validationMessage) : "Value greater than expected maximum")
         };
 
       }
@@ -283,16 +347,14 @@ export function validated(props, state) {
         return {
           valid: false, message: (props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
             ? props.wf[state.currentWorkflow].currentNode.label
-            : ""].validationMessage ? props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+            : ""].validationMessage ? evalInline(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
               ? props.wf[state.currentWorkflow].currentNode.label
-              : ""].validationMessage : "Value greater than expected maximum")
+              : ""].validationMessage) : "Value greater than expected maximum")
         };
 
       }
 
     }
-
-    // return {valid: true, message: null};
 
   }
 
@@ -314,7 +376,30 @@ export function validated(props, state) {
 
     if (props.data.indexOf(currentValue) < 0) {
 
-      return { valid: false, message: "Select register number from list", title: "Missing Data" };
+      let message = "Select value from provided list only";
+      let title = "Invalid Data";
+
+      if (Object.keys(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+        ? props.wf[state.currentWorkflow].currentNode.label
+        : ""]).indexOf("validationMessage") >= 0) {
+
+        message = props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+          ? props.wf[state.currentWorkflow].currentNode.label
+          : ""].validationMessage;
+
+      }
+
+      if (Object.keys(props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+        ? props.wf[state.currentWorkflow].currentNode.label
+        : ""]).indexOf("title") >= 0 && String(currentValue).trim().length <= 0) {
+
+        title = props.app.configs[props.wf && props.wf[state.currentWorkflow] && props.wf[state.currentWorkflow].currentNode && props.wf[state.currentWorkflow].currentNode.label
+          ? props.wf[state.currentWorkflow].currentNode.label
+          : ""].title;
+
+      }
+
+      return { valid: false, message, title };
 
     }
 
